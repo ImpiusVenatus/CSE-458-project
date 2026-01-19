@@ -2,8 +2,10 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 export default function AuthPage() {
+  const router = useRouter()
   const [isLogin, setIsLogin] = useState(true)
   const [formData, setFormData] = useState({
     name: '',
@@ -16,6 +18,8 @@ export default function AuthPage() {
     e.preventDefault()
     // Handle authentication logic here
     console.log('Form submitted:', formData)
+    // Redirect to dashboard
+    router.push('/dashboard')
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,7 +51,7 @@ export default function AuthPage() {
         </div>
 
         {/* Auth Form */}
-        <div className="card">
+        <div className="bg-white rounded-2xl shadow-lg p-6">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {!isLogin && (
               <div>
