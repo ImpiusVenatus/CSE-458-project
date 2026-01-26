@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { initWebGL, setupBasic2D } from '@/lib/webgl-utils'
-import { drawCircle, drawRectangle, Rectangle } from '@/lib/webgl-shapes'
+import { drawCircle, drawRectangle, Rectangle, Circle } from '@/lib/webgl-shapes'
+import { useProgress } from '@/lib/progress-context'
 
 interface Goal {
   id: string
@@ -12,14 +13,40 @@ interface Goal {
   color: string
 }
 
+const DEFAULT_GOALS: Goal[] = [
+  { id: 'goal1', name: 'New Toy', target: 500, current: 0, color: '#ff6b6b' },
+  { id: 'goal2', name: 'Bicycle', target: 2000, current: 0, color: '#4ecdc4' },
+  { id: 'goal3', name: 'Game Console', target: 5000, current: 0, color: '#45b7d1' },
+]
+
 export default function GoalSetting() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [goals, setGoals] = useState<Goal[]>([
-    { id: 'goal1', name: 'New Toy', target: 500, current: 0, color: '#ff6b6b' },
-    { id: 'goal2', name: 'Bicycle', target: 2000, current: 0, color: '#4ecdc4' },
-    { id: 'goal3', name: 'Game Console', target: 5000, current: 0, color: '#45b7d1' },
-  ])
+  const { getProgress, setProgress } = useProgress()
+  const [goals, setGoals] = useState<Goal[]>(DEFAULT_GOALS)
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null)
+
+  const hasLoadedRef = useRef(false)
+  useEffect(() => {
+    const saved = getProgress().goalSetting?.goals
+    if (saved?.length) {
+      setGoals((prev) =>
+        prev.map((g) => {
+          const s = saved.find((x) => x.id === g.id)
+          return s != null ? { ...g, current: s.current } : g
+        })
+      )
+    }
+    hasLoadedRef.current = true
+  }, [])
+
+  useEffect(() => {
+    if (!hasLoadedRef.current) return
+    setProgress({
+      goalSetting: {
+        goals: goals.map((g) => ({ id: g.id, current: g.current })),
+      },
+    })
+  }, [goals, setProgress])
 
   useEffect(() => {
     const canvas = canvasRef.current
