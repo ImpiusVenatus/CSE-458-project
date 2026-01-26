@@ -3,10 +3,13 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 
 export default function AuthPage() {
   const router = useRouter()
   const [isLogin, setIsLogin] = useState(true)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -14,12 +17,58 @@ export default function AuthPage() {
     confirmPassword: '',
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const supabase = createClient()
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle authentication logic here
-    console.log('Form submitted:', formData)
-    // Redirect to dashboard
-    router.push('/dashboard')
+    setError(null)
+    setLoading(true)
+
+    try {
+      if (isLogin) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password,
+        })
+        if (signInError) throw signInError
+      } else {
+        if (formData.password !== formData.confirmPassword) {
+          throw new Error('Passwords do not match')
+        }
+        const { error: signUpError } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            data: { full_name: formData.name },
+          },
+        })
+        if (signUpError) throw signUpError
+      }
+      router.push('/dashboard')
+      router.refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGoogleSignIn = async () => {
+    setError(null)
+    setLoading(true)
+    try {
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+      if (oauthError) throw oauthError
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Google sign-in failed')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,6 +101,11 @@ export default function AuthPage() {
 
         {/* Auth Form */}
         <div className="bg-white rounded-2xl shadow-lg p-6">
+          {error && (
+            <div className="mb-4 p-3 rounded-lg bg-red-50 text-red-700 text-sm">
+              {error}
+            </div>
+          )}
           <form className="space-y-6" onSubmit={handleSubmit}>
             {!isLogin && (
               <div>
@@ -149,9 +203,10 @@ export default function AuthPage() {
             <div>
               <button
                 type="submit"
-                className="btn-primary w-full text-lg"
+                disabled={loading}
+                className="btn-primary w-full text-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLogin ? 'Sign In 🚀' : 'Create Account 🎉'}
+                {loading ? 'Please wait...' : isLogin ? 'Sign In 🚀' : 'Create Account 🎉'}
               </button>
             </div>
           </form>
@@ -161,9 +216,11 @@ export default function AuthPage() {
             <p className="text-sm text-gray-600">
               {isLogin ? "Don't have an account? " : 'Already have an account? '}
               <button
+                type="button"
                 onClick={() => {
                   setIsLogin(!isLogin)
                   setFormData({ name: '', email: '', password: '', confirmPassword: '' })
+                  setError(null)
                 }}
                 className="font-medium text-primary-600 hover:text-primary-500 transition-colors"
               >
@@ -176,7 +233,7 @@ export default function AuthPage() {
           <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
+                <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
                 <span className="px-2 bg-white text-gray-500">Or continue with</span>
@@ -184,11 +241,21 @@ export default function AuthPage() {
             </div>
 
             <div className="mt-6 grid grid-cols-2 gap-3">
-              <button className="btn-secondary flex items-center justify-center">
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={loading}
+                className="btn-secondary flex items-center justify-center disabled:opacity-50"
+              >
                 <span className="mr-2">🔵</span>
                 Google
               </button>
-              <button className="btn-secondary flex items-center justify-center">
+              <button
+                type="button"
+                disabled
+                className="btn-secondary flex items-center justify-center opacity-50 cursor-not-allowed"
+                title="Coming soon"
+              >
                 <span className="mr-2">📘</span>
                 Facebook
               </button>
@@ -206,4 +273,3 @@ export default function AuthPage() {
     </div>
   )
 }
-
