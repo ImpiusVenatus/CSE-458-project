@@ -12,8 +12,8 @@ export interface WebGLContext {
  * Initialize WebGL context from a canvas element
  */
 export function initWebGL(canvas: HTMLCanvasElement): WebGLContext {
-  const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
-  
+  const gl = (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null
+
   if (!gl) {
     console.error('WebGL is not supported in this browser')
     return { gl: null, program: null }
