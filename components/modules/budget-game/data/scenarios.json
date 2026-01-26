@@ -1,0 +1,59 @@
+[
+  {
+    "id": "student",
+    "name": "Student",
+    "description": "Part-time job, shared apartment, limited income.",
+    "monthlyIncome": 1200,
+    "fixedExpenses": [
+      { "id": "rent", "name": "Rent (shared)", "amount": 400 },
+      { "id": "utilities", "name": "Utilities", "amount": 60 },
+      { "id": "phone", "name": "Phone / Internet", "amount": 45 },
+      { "id": "insurance", "name": "Insurance", "amount": 0 },
+      { "id": "subscriptions", "name": "Subscriptions", "amount": 15 }
+    ],
+    "startingCash": 500,
+    "startingSavings": 200,
+    "startingEmergencyFund": 0,
+    "startingDebt": 0,
+    "startingCreditScore": 650,
+    "startingQualityOfLife": 60
+  },
+  {
+    "id": "entry_level",
+    "name": "Entry-Level Job",
+    "description": "First full-time job, own apartment.",
+    "monthlyIncome": 3200,
+    "fixedExpenses": [
+      { "id": "rent", "name": "Rent", "amount": 950 },
+      { "id": "utilities", "name": "Utilities", "amount": 120 },
+      { "id": "phone", "name": "Phone / Internet", "amount": 80 },
+      { "id": "insurance", "name": "Insurance", "amount": 100 },
+      { "id": "subscriptions", "name": "Subscriptions", "amount": 30 }
+    ],
+    "startingCash": 1500,
+    "startingSavings": 1000,
+    "startingEmergencyFund": 500,
+    "startingDebt": 0,
+    "startingCreditScore": 680,
+    "startingQualityOfLife": 70
+  },
+  {
+    "id": "family",
+    "name": "Family",
+    "description": "Dual income, kids, mortgage.",
+    "monthlyIncome": 7500,
+    "fixedExpenses": [
+      { "id": "rent", "name": "Mortgage", "amount": 1800 },
+      { "id": "utilities", "name": "Utilities", "amount": 250 },
+      { "id": "phone", "name": "Phone / Internet", "amount": 120 },
+      { "id": "insurance", "name": "Insurance", "amount": 280 },
+      { "id": "subscriptions", "name": "Subscriptions", "amount": 50 }
+    ],
+    "startingCash": 3000,
+    "startingSavings": 5000,
+    "startingEmergencyFund": 2000,
+    "startingDebt": 0,
+    "startingCreditScore": 720,
+    "startingQualityOfLife": 75
+  }
+]

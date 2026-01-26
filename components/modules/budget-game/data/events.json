@@ -1,0 +1,355 @@
+[
+  {
+    "id": "car_repair",
+    "title": "Car repair",
+    "description": "Your car needs a brake repair. Estimate: $400.",
+    "type": "unexpected_expense",
+    "amount": 400,
+    "choices": [
+      { "id": "pay_cash", "label": "Pay cash", "effects": [{ "type": "cash", "amount": -400 }] },
+      { "id": "use_savings", "label": "Use savings", "effects": [{ "type": "savings", "amount": -400 }] },
+      { "id": "use_emergency", "label": "Use emergency fund", "effects": [{ "type": "emergency_fund", "amount": -400 }] },
+      { "id": "use_credit", "label": "Put on credit card", "effects": [{ "type": "debt", "amount": 400 }, { "type": "credit_score", "amount": -5 }] }
+    ]
+  },
+  {
+    "id": "medical_bill",
+    "title": "Medical bill",
+    "description": "Unexpected doctor visit. Bill: $150.",
+    "type": "unexpected_expense",
+    "amount": 150,
+    "choices": [
+      { "id": "pay_cash", "label": "Pay cash", "effects": [{ "type": "cash", "amount": -150 }] },
+      { "id": "use_emergency", "label": "Use emergency fund", "effects": [{ "type": "emergency_fund", "amount": -150 }] },
+      { "id": "use_credit", "label": "Put on credit", "effects": [{ "type": "debt", "amount": 150 }] }
+    ]
+  },
+  {
+    "id": "bonus",
+    "title": "Work bonus",
+    "description": "You received a small performance bonus!",
+    "type": "unexpected_income",
+    "amount": 200,
+    "choices": [
+      { "id": "keep", "label": "Add to cash", "effects": [{ "type": "cash", "amount": 200 }] },
+      { "id": "savings", "label": "Add to savings", "effects": [{ "type": "savings", "amount": 200 }] },
+      { "id": "emergency", "label": "Add to emergency fund", "effects": [{ "type": "emergency_fund", "amount": 200 }] },
+      { "id": "pay_debt", "label": "Pay down debt", "effects": [{ "type": "debt", "amount": -200 }, { "type": "credit_score", "amount": 3 }] }
+    ]
+  },
+  {
+    "id": "gift",
+    "title": "Birthday gift",
+    "description": "A relative sent you $50 for your birthday.",
+    "type": "unexpected_income",
+    "amount": 50,
+    "choices": [
+      { "id": "keep", "label": "Keep as cash", "effects": [{ "type": "cash", "amount": 50 }] },
+      { "id": "savings", "label": "Save it", "effects": [{ "type": "savings", "amount": 50 }] },
+      { "id": "treat", "label": "Treat yourself (QoL)", "effects": [{ "type": "cash", "amount": 50 }, { "type": "quality_of_life", "amount": 5 }] }
+    ]
+  },
+  {
+    "id": "concert",
+    "title": "Concert tickets",
+    "description": "Friends want to go to a concert. Tickets: $80.",
+    "type": "lifestyle_choice",
+    "choices": [
+      { "id": "go", "label": "Go (pay cash)", "effects": [{ "type": "cash", "amount": -80 }, { "type": "quality_of_life", "amount": 8 }] },
+      { "id": "credit", "label": "Go (put on credit)", "effects": [{ "type": "debt", "amount": 80 }, { "type": "quality_of_life", "amount": 6 }] },
+      { "id": "skip", "label": "Skip it", "effects": [{ "type": "quality_of_life", "amount": -3 }] }
+    ]
+  },
+  {
+    "id": "gym",
+    "title": "Gym membership",
+    "description": "A gym is offering a 3-month deal for $90.",
+    "type": "lifestyle_choice",
+    "choices": [
+      { "id": "join", "label": "Join (pay cash)", "effects": [{ "type": "cash", "amount": -90 }, { "type": "quality_of_life", "amount": 5 }] },
+      { "id": "skip", "label": "Skip", "effects": [] }
+    ]
+  },
+  {
+    "id": "credit_offer",
+    "title": "Credit card offer",
+    "description": "Pre-approved card with $500 limit. 0% APR for 6 months.",
+    "type": "credit_offer",
+    "choices": [
+      { "id": "accept", "label": "Accept (add option)", "effects": [] },
+      { "id": "decline", "label": "Decline", "effects": [{ "type": "credit_score", "amount": 0 }] }
+    ]
+  },
+  {
+    "id": "late_fee",
+    "title": "Overlooked bill",
+    "description": "You missed a utility payment. Late fee: $25.",
+    "type": "fee_penalty",
+    "choices": [
+      { "id": "pay", "label": "Pay fee", "effects": [{ "type": "cash", "amount": -25 }] },
+      { "id": "credit", "label": "Put on credit", "effects": [{ "type": "debt", "amount": 25 }, { "type": "credit_score", "amount": -2 }] }
+    ]
+  },
+  {
+    "id": "phone_bill",
+    "title": "Phone bill overage",
+    "description": "Data overage this month. Extra charge: $40.",
+    "type": "unexpected_expense",
+    "amount": 40,
+    "choices": [
+      { "id": "pay", "label": "Pay cash", "effects": [{ "type": "cash", "amount": -40 }] },
+      { "id": "credit", "label": "Put on credit", "effects": [{ "type": "debt", "amount": 40 }] }
+    ]
+  },
+  {
+    "id": "freelance",
+    "title": "Freelance gig",
+    "description": "You did a small side project. Payment: $120.",
+    "type": "unexpected_income",
+    "amount": 120,
+    "choices": [
+      { "id": "keep", "label": "Add to cash", "effects": [{ "type": "cash", "amount": 120 }] },
+      { "id": "savings", "label": "Save it", "effects": [{ "type": "savings", "amount": 120 }] },
+      { "id": "debt", "label": "Pay debt", "effects": [{ "type": "debt", "amount": -120 }, { "type": "credit_score", "amount": 2 }] }
+    ]
+  },
+  {
+    "id": "appliance",
+    "title": "Appliance repair",
+    "description": "The fridge is making noise. Repair: $250.",
+    "type": "unexpected_expense",
+    "amount": 250,
+    "choices": [
+      { "id": "pay", "label": "Pay cash", "effects": [{ "type": "cash", "amount": -250 }] },
+      { "id": "emergency", "label": "Use emergency fund", "effects": [{ "type": "emergency_fund", "amount": -250 }] },
+      { "id": "credit", "label": "Put on credit", "effects": [{ "type": "debt", "amount": 250 }, { "type": "credit_score", "amount": -3 }] }
+    ]
+  },
+  {
+    "id": "dinner_out",
+    "title": "Dinner invitation",
+    "description": "Friends want to go to a nice restaurant. Your share: $45.",
+    "type": "lifestyle_choice",
+    "choices": [
+      { "id": "go", "label": "Go (cash)", "effects": [{ "type": "cash", "amount": -45 }, { "type": "quality_of_life", "amount": 5 }] },
+      { "id": "skip", "label": "Skip", "effects": [{ "type": "quality_of_life", "amount": -2 }] }
+    ]
+  },
+  {
+    "id": "tax_refund",
+    "title": "Tax refund",
+    "description": "You got a small tax refund: $180.",
+    "type": "unexpected_income",
+    "amount": 180,
+    "choices": [
+      { "id": "keep", "label": "Add to cash", "effects": [{ "type": "cash", "amount": 180 }] },
+      { "id": "savings", "label": "Save half", "effects": [{ "type": "cash", "amount": 90 }, { "type": "savings", "amount": 90 }] },
+      { "id": "emergency", "label": "Emergency fund", "effects": [{ "type": "emergency_fund", "amount": 180 }] }
+    ]
+  },
+  {
+    "id": "vet_bill",
+    "title": "Vet bill",
+    "description": "Pet needs a check-up. Cost: $85.",
+    "type": "unexpected_expense",
+    "amount": 85,
+    "choices": [
+      { "id": "pay", "label": "Pay cash", "effects": [{ "type": "cash", "amount": -85 }] },
+      { "id": "credit", "label": "Put on credit", "effects": [{ "type": "debt", "amount": 85 }] }
+    ]
+  },
+  {
+    "id": "streaming",
+    "title": "Streaming subscription",
+    "description": "A new show you like is on a paid service. $15/month.",
+    "type": "lifestyle_choice",
+    "choices": [
+      { "id": "subscribe", "label": "Subscribe", "effects": [{ "type": "cash", "amount": -15 }, { "type": "quality_of_life", "amount": 3 }] },
+      { "id": "skip", "label": "Skip", "effects": [] }
+    ]
+  },
+  {
+    "id": "parking_ticket",
+    "title": "Parking ticket",
+    "description": "You got a parking ticket. Fine: $55.",
+    "type": "fee_penalty",
+    "choices": [
+      { "id": "pay", "label": "Pay fine", "effects": [{ "type": "cash", "amount": -55 }] },
+      { "id": "credit", "label": "Put on credit", "effects": [{ "type": "debt", "amount": 55 }] }
+    ]
+  },
+  {
+    "id": "overtime",
+    "title": "Overtime pay",
+    "description": "Extra hours approved. Extra pay: $160.",
+    "type": "unexpected_income",
+    "amount": 160,
+    "choices": [
+      { "id": "keep", "label": "Add to cash", "effects": [{ "type": "cash", "amount": 160 }] },
+      { "id": "savings", "label": "Save it", "effects": [{ "type": "savings", "amount": 160 }] },
+      { "id": "debt", "label": "Pay debt", "effects": [{ "type": "debt", "amount": -160 }, { "type": "credit_score", "amount": 2 }] }
+    ]
+  },
+  {
+    "id": "dental",
+    "title": "Dental visit",
+    "description": "Routine cleaning. Cost: $95 (after insurance).",
+    "type": "unexpected_expense",
+    "amount": 95,
+    "choices": [
+      { "id": "pay", "label": "Pay cash", "effects": [{ "type": "cash", "amount": -95 }] },
+      { "id": "emergency", "label": "Use emergency fund", "effects": [{ "type": "emergency_fund", "amount": -95 }] },
+      { "id": "credit", "label": "Put on credit", "effects": [{ "type": "debt", "amount": 95 }] }
+    ]
+  },
+  {
+    "id": "holiday_gift",
+    "title": "Holiday gift",
+    "description": "You want to buy a gift for family. Budget: $60.",
+    "type": "lifestyle_choice",
+    "choices": [
+      { "id": "buy", "label": "Buy (cash)", "effects": [{ "type": "cash", "amount": -60 }, { "type": "quality_of_life", "amount": 4 }] },
+      { "id": "homemade", "label": "Homemade instead", "effects": [{ "type": "cash", "amount": -15 }, { "type": "quality_of_life", "amount": 2 }] },
+      { "id": "skip", "label": "Skip gift", "effects": [{ "type": "quality_of_life", "amount": -2 }] }
+    ]
+  },
+  {
+    "id": "interest_charge",
+    "title": "Credit interest",
+    "description": "Your credit card statement shows interest charged.",
+    "type": "fee_penalty",
+    "choices": [
+      { "id": "ack", "label": "Acknowledge", "effects": [] }
+    ]
+  },
+  {
+    "id": "cashback",
+    "title": "Cashback reward",
+    "description": "You earned $20 cashback on recent purchases.",
+    "type": "unexpected_income",
+    "amount": 20,
+    "choices": [
+      { "id": "keep", "label": "Add to cash", "effects": [{ "type": "cash", "amount": 20 }] },
+      { "id": "savings", "label": "Save it", "effects": [{ "type": "savings", "amount": 20 }] }
+    ]
+  },
+  {
+    "id": "flat_tire",
+    "title": "Flat tire",
+    "description": "You need a new tire. Cost: $120.",
+    "type": "unexpected_expense",
+    "amount": 120,
+    "choices": [
+      { "id": "pay", "label": "Pay cash", "effects": [{ "type": "cash", "amount": -120 }] },
+      { "id": "emergency", "label": "Use emergency fund", "effects": [{ "type": "emergency_fund", "amount": -120 }] },
+      { "id": "credit", "label": "Put on credit", "effects": [{ "type": "debt", "amount": 120 }, { "type": "credit_score", "amount": -2 }] }
+    ]
+  },
+  {
+    "id": "course",
+    "title": "Online course",
+    "description": "A course that could help your career. One-time: $80.",
+    "type": "lifestyle_choice",
+    "choices": [
+      { "id": "buy", "label": "Enroll (cash)", "effects": [{ "type": "cash", "amount": -80 }, { "type": "quality_of_life", "amount": 4 }] },
+      { "id": "skip", "label": "Skip", "effects": [] }
+    ]
+  },
+  {
+    "id": "rebate",
+    "title": "Mail-in rebate",
+    "description": "A rebate check arrived: $35.",
+    "type": "unexpected_income",
+    "amount": 35,
+    "choices": [
+      { "id": "keep", "label": "Add to cash", "effects": [{ "type": "cash", "amount": 35 }] },
+      { "id": "savings", "label": "Save it", "effects": [{ "type": "savings", "amount": 35 }] }
+    ]
+  },
+  {
+    "id": "utility_spike",
+    "title": "High utility bill",
+    "description": "Unusually hot month. Electric bill is $60 higher.",
+    "type": "unexpected_expense",
+    "amount": 60,
+    "choices": [
+      { "id": "pay", "label": "Pay cash", "effects": [{ "type": "cash", "amount": -60 }] },
+      { "id": "credit", "label": "Put on credit", "effects": [{ "type": "debt", "amount": 60 }] }
+    ]
+  },
+  {
+    "id": "donation",
+    "title": "Charity request",
+    "description": "A cause you care about is asking for a $30 donation.",
+    "type": "lifestyle_choice",
+    "choices": [
+      { "id": "donate", "label": "Donate $30", "effects": [{ "type": "cash", "amount": -30 }, { "type": "quality_of_life", "amount": 3 }] },
+      { "id": "skip", "label": "Skip", "effects": [] }
+    ]
+  },
+  {
+    "id": "bank_fee",
+    "title": "Bank fee",
+    "description": "Overdraft or service fee: $30.",
+    "type": "fee_penalty",
+    "choices": [
+      { "id": "pay", "label": "Pay fee", "effects": [{ "type": "cash", "amount": -30 }] }
+    ]
+  },
+  {
+    "id": "side_sale",
+    "title": "Sold unused items",
+    "description": "You sold some stuff online. Proceeds: $75.",
+    "type": "unexpected_income",
+    "amount": 75,
+    "choices": [
+      { "id": "keep", "label": "Add to cash", "effects": [{ "type": "cash", "amount": 75 }] },
+      { "id": "savings", "label": "Save it", "effects": [{ "type": "savings", "amount": 75 }] },
+      { "id": "emergency", "label": "Emergency fund", "effects": [{ "type": "emergency_fund", "amount": 75 }] }
+    ]
+  },
+  {
+    "id": "plumber",
+    "title": "Plumber visit",
+    "description": "Leaky faucet repair. Cost: $90.",
+    "type": "unexpected_expense",
+    "amount": 90,
+    "choices": [
+      { "id": "pay", "label": "Pay cash", "effects": [{ "type": "cash", "amount": -90 }] },
+      { "id": "emergency", "label": "Use emergency fund", "effects": [{ "type": "emergency_fund", "amount": -90 }] },
+      { "id": "credit", "label": "Put on credit", "effects": [{ "type": "debt", "amount": 90 }] }
+    ]
+  },
+  {
+    "id": "vacation",
+    "title": "Weekend trip",
+    "description": "Friends are planning a weekend trip. Your share: $150.",
+    "type": "lifestyle_choice",
+    "choices": [
+      { "id": "go_cash", "label": "Go (pay cash)", "effects": [{ "type": "cash", "amount": -150 }, { "type": "quality_of_life", "amount": 10 }] },
+      { "id": "go_credit", "label": "Go (credit)", "effects": [{ "type": "debt", "amount": 150 }, { "type": "quality_of_life", "amount": 8 }, { "type": "credit_score", "amount": -2 }] },
+      { "id": "skip", "label": "Skip", "effects": [{ "type": "quality_of_life", "amount": -4 }] }
+    ]
+  },
+  {
+    "id": "refund",
+    "title": "Store refund",
+    "description": "Returned an item. Refund: $45.",
+    "type": "unexpected_income",
+    "amount": 45,
+    "choices": [
+      { "id": "keep", "label": "Add to cash", "effects": [{ "type": "cash", "amount": 45 }] },
+      { "id": "savings", "label": "Save it", "effects": [{ "type": "savings", "amount": 45 }] }
+    ]
+  },
+  {
+    "id": "subscription_fee",
+    "title": "Subscription price increase",
+    "description": "A subscription you use went up by $5/month.",
+    "type": "fee_penalty",
+    "choices": [
+      { "id": "keep", "label": "Keep subscription", "effects": [{ "type": "cash", "amount": -5 }] },
+      { "id": "cancel", "label": "Cancel", "effects": [{ "type": "quality_of_life", "amount": -1 }] }
+    ]
+  }
+]
