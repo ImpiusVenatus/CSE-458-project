@@ -1,16 +1,35 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { clearProgress } from '@/lib/progress'
+import { ProgressProvider } from '@/lib/progress-context'
 import MoneyCounting from '@/components/modules/MoneyCounting'
 import SavingsVisualization from '@/components/modules/SavingsVisualization'
 import MakingChange from '@/components/modules/MakingChange'
 import NeedsVsWants from '@/components/modules/NeedsVsWants'
 import GoalSetting from '@/components/modules/GoalSetting'
+import BudgetGame from '@/components/modules/BudgetGame'
 
 export default function DashboardPage() {
   const [selectedModule, setSelectedModule] = useState<number | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
   const router = useRouter()
+  const supabase = createClient()
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserId(user?.id ?? null)
+    })
+  }, [])
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    clearProgress()
+    router.push('/auth')
+    router.refresh()
+  }
 
   const modules = [
     {
@@ -48,6 +67,13 @@ export default function DashboardPage() {
       icon: '🎯',
       color: '#8b5cf6',
     },
+    {
+      id: 6,
+      title: 'Budget Game',
+      description: 'Month-by-month budgeting simulation',
+      icon: '📊',
+      color: '#0ea5e9',
+    },
   ]
 
   const renderModule = () => {
@@ -62,14 +88,17 @@ export default function DashboardPage() {
         return <NeedsVsWants />
       case 5:
         return <GoalSetting />
+      case 6:
+        return <BudgetGame />
       default:
         return null
     }
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header */}
+    <ProgressProvider userId={userId}>
+      <div className="min-h-screen flex flex-col">
+        {/* Header */}
       <header className="bg-white shadow-md sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-2">
@@ -78,7 +107,7 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center space-x-4">
             <button
-              onClick={() => router.push('/auth')}
+              onClick={handleSignOut}
               className="text-gray-600 hover:text-primary-600 transition-colors"
             >
               Sign Out
@@ -141,6 +170,7 @@ export default function DashboardPage() {
         </main>
       </div>
     </div>
+    </ProgressProvider>
   )
 }
 
