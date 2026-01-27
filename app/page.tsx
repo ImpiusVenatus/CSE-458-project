@@ -2,9 +2,11 @@
 
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
+import { useTheme } from '@/lib/theme-context'
 
 export default function LandingPage() {
   const [isVisible, setIsVisible] = useState(false)
+  const { theme, toggleTheme } = useTheme()
 
   useEffect(() => {
     setIsVisible(true)
@@ -49,16 +51,24 @@ export default function LandingPage() {
   ]
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen dark:bg-gray-900">
       {/* Header */}
-      <header className="bg-white shadow-md sticky top-0 z-50">
+      <header className="bg-white dark:bg-gray-800 shadow-md sticky top-0 z-50 border-b border-gray-200 dark:border-gray-700">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <span className="text-4xl">💰</span>
-            <h1 className="text-2xl font-bold text-primary-600">Money Adventure</h1>
+            <h1 className="text-2xl font-bold text-primary-600 dark:text-primary-400">Money Adventure</h1>
           </div>
-          <nav className="flex space-x-4">
-            <Link href="/auth" className="btn-secondary">
+          <nav className="flex items-center space-x-4">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              aria-label={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+            >
+              {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+            </button>
+            <Link href="/auth" className="btn-secondary dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">
               Sign In
             </Link>
             <Link href="/auth" className="btn-primary">
@@ -74,10 +84,10 @@ export default function LandingPage() {
           <div className="flex justify-center mb-6">
             <div className="text-8xl animate-bounce-slow">🎮</div>
           </div>
-          <h2 className="text-5xl md:text-6xl font-bold text-gray-800 mb-4">
-            Welcome to <span className="text-primary-500">Money Adventure</span>!
+          <h2 className="text-5xl md:text-6xl font-bold text-gray-800 dark:text-gray-100 mb-4">
+            Welcome to <span className="text-primary-500 dark:text-primary-400">Money Adventure</span>!
           </h2>
-          <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
             Learn about money through fun and interactive games designed just for kids!
           </p>
           <div className="flex justify-center space-x-4">
@@ -93,28 +103,28 @@ export default function LandingPage() {
 
       {/* Features Section */}
       <section className="container mx-auto px-4 py-16">
-        <h3 className="text-4xl font-bold text-center text-gray-800 mb-12">
+        <h3 className="text-4xl font-bold text-center text-gray-800 dark:text-gray-100 mb-12">
           What You'll Learn
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
           <div className="card text-center">
             <div className="text-6xl mb-4">🎨</div>
-            <h4 className="text-2xl font-bold text-gray-800 mb-2">Interactive Learning</h4>
-            <p className="text-gray-600">
+            <h4 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Interactive Learning</h4>
+            <p className="text-gray-600 dark:text-gray-300">
               Learn through hands-on activities and fun games that make money concepts easy to understand!
             </p>
           </div>
           <div className="card text-center">
             <div className="text-6xl mb-4">📊</div>
-            <h4 className="text-2xl font-bold text-gray-800 mb-2">Visual Progress</h4>
-            <p className="text-gray-600">
+            <h4 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Visual Progress</h4>
+            <p className="text-gray-600 dark:text-gray-300">
               Watch your savings grow with beautiful animations and see your progress in real-time!
             </p>
           </div>
           <div className="card text-center">
             <div className="text-6xl mb-4">🏆</div>
-            <h4 className="text-2xl font-bold text-gray-800 mb-2">Achievement System</h4>
-            <p className="text-gray-600">
+            <h4 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Achievement System</h4>
+            <p className="text-gray-600 dark:text-gray-300">
               Earn rewards and unlock achievements as you master new money skills!
             </p>
           </div>
@@ -122,9 +132,9 @@ export default function LandingPage() {
       </section>
 
       {/* Modules Section */}
-      <section id="modules" className="bg-white py-16">
+      <section id="modules" className="bg-white dark:bg-gray-800/50 py-16 border-t border-gray-200 dark:border-gray-700">
         <div className="container mx-auto px-4">
-          <h3 className="text-4xl font-bold text-center text-gray-800 mb-12">
+          <h3 className="text-4xl font-bold text-center text-gray-800 dark:text-gray-100 mb-12">
             Our Learning Modules
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -137,10 +147,10 @@ export default function LandingPage() {
                 <div className={`w-16 h-16 rounded-full bg-gradient-to-r ${module.color} flex items-center justify-center text-3xl mb-4 mx-auto`}>
                   {module.icon}
                 </div>
-                <h4 className="text-2xl font-bold text-gray-800 mb-3 text-center">
+                <h4 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-3 text-center">
                   {module.title}
                 </h4>
-                <p className="text-gray-600 text-center">
+                <p className="text-gray-600 dark:text-gray-300 text-center">
                   {module.description}
                 </p>
               </div>
@@ -163,7 +173,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-800 text-white py-8">
+      <footer className="bg-gray-800 dark:bg-gray-900 text-white py-8 border-t border-gray-700">
         <div className="container mx-auto px-4 text-center">
           <div className="flex justify-center items-center space-x-2 mb-4">
             <span className="text-2xl">💰</span>
