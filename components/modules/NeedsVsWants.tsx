@@ -71,7 +71,7 @@ export default function NeedsVsWants() {
     const setup = setupBasic2D(gl, canvas)
     if (!setup) return
 
-    gl.clearColor(0.95, 0.97, 1.0, 1.0)
+    gl.clearColor(0.11, 0.13, 0.16, 1.0)
     gl.enable(gl.BLEND)
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
@@ -87,23 +87,23 @@ export default function NeedsVsWants() {
     const render = () => {
       gl.clear(gl.COLOR_BUFFER_BIT)
 
-      // Draw NEEDS area (left)
+      // Draw NEEDS area (left) – dark theme
       const needsArea: Rectangle = {
         x: canvas.width * 0.25,
         y: canvas.height / 2,
         width: canvas.width * 0.4,
         height: canvas.height - 200,
-        color: '#c8e6c9',
+        color: '#14532d',
       }
       drawRectangle(gl, setup, needsArea)
 
-      // Draw WANTS area (right)
+      // Draw WANTS area (right) – dark theme
       const wantsArea: Rectangle = {
         x: canvas.width * 0.75,
         y: canvas.height / 2,
         width: canvas.width * 0.4,
         height: canvas.height - 200,
-        color: '#ffccbc',
+        color: '#78350f',
       }
       drawRectangle(gl, setup, wantsArea)
 
@@ -260,7 +260,7 @@ export default function NeedsVsWants() {
   const maxScore = Object.keys(correctAnswers).length
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-gray-900">
       <div className="flex-1 relative">
         <canvas
           ref={canvasRef}
@@ -273,25 +273,25 @@ export default function NeedsVsWants() {
         />
 
         {/* Instructions */}
-        <div className="absolute top-4 left-4 bg-white/90 rounded-lg p-4 shadow-lg max-w-xs">
-          <h4 className="font-bold text-gray-800 mb-2">🎯 Needs vs Wants</h4>
-          <p className="text-sm text-gray-600 mb-2">
+        <div className="absolute top-4 left-4 bg-gray-800/90 rounded-lg p-4 shadow-lg max-w-xs border border-gray-700">
+          <h4 className="font-bold text-gray-100 mb-2">🎯 Needs vs Wants</h4>
+          <p className="text-sm text-gray-300 mb-2">
             Drag items to categorize them as Needs or Wants!
           </p>
         </div>
 
         {/* Labels */}
-        <div className="absolute top-20 left-1/4 transform -translate-x-1/2 bg-green-500 text-white rounded-full px-6 py-2 shadow-lg">
+        <div className="absolute top-20 left-1/4 transform -translate-x-1/2 bg-green-600 text-white rounded-full px-6 py-2 shadow-lg border border-green-500/50">
           <span className="font-bold">NEEDS</span>
         </div>
-        <div className="absolute top-20 right-1/4 transform translate-x-1/2 bg-orange-500 text-white rounded-full px-6 py-2 shadow-lg">
+        <div className="absolute top-20 right-1/4 transform translate-x-1/2 bg-amber-600 text-white rounded-full px-6 py-2 shadow-lg border border-amber-500/50">
           <span className="font-bold">WANTS</span>
         </div>
 
         {/* Score */}
-        <div className="absolute top-4 right-4 bg-primary-500 text-white rounded-lg px-6 py-4 shadow-lg">
+        <div className="absolute top-4 right-4 bg-gray-800 text-white rounded-lg px-6 py-4 shadow-lg border border-gray-600">
           <div className="text-center">
-            <div className="text-sm font-semibold opacity-90">Score</div>
+            <div className="text-sm font-semibold text-gray-300">Score</div>
             <div className="text-3xl font-bold">
               {score}/{maxScore}
             </div>
@@ -300,18 +300,21 @@ export default function NeedsVsWants() {
       </div>
 
       {/* Control panel */}
-      <div className="bg-white border-t p-4">
+      <div className="bg-gray-800 border-t border-gray-700 p-4">
         <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-gray-300">
             {score === maxScore ? (
-              <span className="text-green-600 font-bold">🎉 Perfect! All correct!</span>
+              <span className="text-green-400 font-bold">🎉 Perfect! All correct!</span>
             ) : (
               <span>
                 Categorized: <span className="font-semibold">{score}</span>/{maxScore} correctly
               </span>
             )}
           </div>
-          <button onClick={reset} className="btn-secondary text-sm px-4 py-2">
+          <button
+            onClick={reset}
+            className="bg-gray-600 hover:bg-gray-500 text-gray-100 font-semibold text-sm px-4 py-2 rounded-lg transition-colors border border-gray-500"
+          >
             Reset
           </button>
         </div>
