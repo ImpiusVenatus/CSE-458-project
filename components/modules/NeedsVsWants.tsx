@@ -1,325 +1,559 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { initWebGL, setupBasic2D } from '@/lib/webgl-utils'
-import { drawCircle, drawRectangle, isPointInRectangle, getCanvasCoordinates, Rectangle } from '@/lib/webgl-shapes'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
-interface Item {
+type Category = 'need' | 'want'
+
+type ItemDef = {
   id: string
   name: string
-  category: 'need' | 'want' | null
-  x: number
-  y: number
-  color: string
+  emoji: string
+  correct: Category
+}
+
+type RoundPack = {
+  title: string
+  items: ItemDef[]
+}
+
+const ROUNDS: RoundPack[] = [
+  {
+    title: 'Home & Daily Life',
+    items: [
+      { id: 'food', name: 'Food', emoji: '🍛', correct: 'need' },
+      { id: 'water', name: 'Water', emoji: '💧', correct: 'need' },
+      { id: 'rent', name: 'Rent / Shelter', emoji: '🏠', correct: 'need' },
+      { id: 'electricity', name: 'Electricity Bill', emoji: '💡', correct: 'need' },
+      { id: 'soap', name: 'Soap', emoji: '🧼', correct: 'need' },
+      { id: 'clothes', name: 'Basic Clothes', emoji: '👕', correct: 'need' },
+      { id: 'icecream', name: 'Ice Cream', emoji: '🍦', correct: 'want' },
+      { id: 'perfume', name: 'Premium Perfume', emoji: '🧴', correct: 'want' },
+      { id: 'decor', name: 'Decor Lights', emoji: '✨', correct: 'want' },
+      { id: 'toycar', name: 'Toy Car', emoji: '🚗', correct: 'want' },
+    ],
+  },
+  {
+    title: 'School & Learning',
+    items: [
+      { id: 'fees', name: 'School Fees', emoji: '🏫', correct: 'need' },
+      { id: 'notebook', name: 'Notebooks', emoji: '📒', correct: 'need' },
+      { id: 'pen', name: 'Pen', emoji: '🖊️', correct: 'need' },
+      { id: 'lunch', name: 'Lunch', emoji: '🍱', correct: 'need' },
+      { id: 'transport', name: 'Transport', emoji: '🚌', correct: 'need' },
+      { id: 'uniform', name: 'Uniform', emoji: '🧥', correct: 'need' },
+      { id: 'stickers', name: 'Sticker Pack', emoji: '🟡', correct: 'want' },
+      { id: 'comic', name: 'Comic Book', emoji: '📚', correct: 'want' },
+      { id: 'gaming', name: 'Video Game', emoji: '🎮', correct: 'want' },
+      { id: 'latestphone', name: 'Latest Phone', emoji: '📱', correct: 'want' },
+    ],
+  },
+  {
+    title: 'Health & Safety',
+    items: [
+      { id: 'medicine', name: 'Medicine', emoji: '💊', correct: 'need' },
+      { id: 'doctor', name: 'Doctor Visit', emoji: '🩺', correct: 'need' },
+      { id: 'mask', name: 'Mask / Hygiene', emoji: '😷', correct: 'need' },
+      { id: 'firstaid', name: 'First Aid Kit', emoji: '🧰', correct: 'need' },
+      { id: 'blanket', name: 'Warm Blanket', emoji: '🛌', correct: 'need' },
+      { id: 'healthymeal', name: 'Healthy Meal', emoji: '🥗', correct: 'need' },
+      { id: 'energydrink', name: 'Energy Drink', emoji: '🥤', correct: 'want' },
+      { id: 'spa', name: 'Spa Day', emoji: '🧖', correct: 'want' },
+      { id: 'luxwatch', name: 'Luxury Watch', emoji: '⌚', correct: 'want' },
+      { id: 'designerbag', name: 'Designer Bag', emoji: '👜', correct: 'want' },
+    ],
+  },
+  {
+    title: 'Tech & Entertainment',
+    items: [
+      { id: 'basicnet', name: 'Basic Internet (study)', emoji: '🌐', correct: 'need' },
+      { id: 'charger', name: 'Charger', emoji: '🔌', correct: 'need' },
+      { id: 'phonefix', name: 'Phone Repair', emoji: '🛠️', correct: 'need' },
+      { id: 'groceries', name: 'Groceries', emoji: '🛒', correct: 'need' },
+      { id: 'buspass', name: 'Bus Pass', emoji: '🎟️', correct: 'need' },
+      { id: 'cvprint', name: 'CV Print', emoji: '📄', correct: 'need' },
+      { id: 'netflix', name: 'Streaming Subscription', emoji: '📺', correct: 'want' },
+      { id: 'console', name: 'Game Console', emoji: '🕹️', correct: 'want' },
+      { id: 'earbuds', name: 'Wireless Earbuds', emoji: '🎧', correct: 'want' },
+      { id: 'skins', name: 'Game Skins', emoji: '🎨', correct: 'want' },
+    ],
+  },
+  {
+    title: 'Family & Community',
+    items: [
+      { id: 'rice', name: 'Rice', emoji: '🍚', correct: 'need' },
+      { id: 'gas', name: 'Cooking Gas', emoji: '🔥', correct: 'need' },
+      { id: 'diapers', name: 'Baby Diapers', emoji: '🍼', correct: 'need' },
+      { id: 'emergency', name: 'Emergency Savings', emoji: '🛟', correct: 'need' },
+      { id: 'homerepair', name: 'Home Repair', emoji: '🧰', correct: 'need' },
+      { id: 'medicine2', name: 'Basic Vitamins', emoji: '🧃', correct: 'need' },
+      { id: 'birthday', name: 'Birthday Party', emoji: '🎂', correct: 'want' },
+      { id: 'restaurant', name: 'Restaurant Dinner', emoji: '🍽️', correct: 'want' },
+      { id: 'themepark', name: 'Theme Park', emoji: '🎡', correct: 'want' },
+      { id: 'fancycake', name: 'Fancy Cake', emoji: '🍰', correct: 'want' },
+    ],
+  },
+]
+
+// helpers
+const shuffle = <T,>(arr: T[]) => {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
+type FlyAnim = {
+  id: string
+  emoji: string
+  from: { x: number; y: number }
+  to: { x: number; y: number }
 }
 
 export default function NeedsVsWants() {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [selectedItem, setSelectedItem] = useState<string | null>(null)
-  const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null)
-  const [items, setItems] = useState<Item[]>([
-    { id: 'food', name: 'Food', category: null, x: 150, y: 150, color: '#ff6b6b' },
-    { id: 'water', name: 'Water', category: null, x: 300, y: 150, color: '#4ecdc4' },
-    { id: 'shelter', name: 'Shelter', category: null, x: 450, y: 150, color: '#45b7d1' },
-    { id: 'clothes', name: 'Clothes', category: null, x: 150, y: 250, color: '#f9ca24' },
-    { id: 'toy', name: 'Toy', category: null, x: 300, y: 250, color: '#6c5ce7' },
-    { id: 'game', name: 'Video Game', category: null, x: 450, y: 250, color: '#fd79a8' },
-    { id: 'candy', name: 'Candy', category: null, x: 150, y: 350, color: '#fdcb6e' },
-    { id: 'education', name: 'Education', category: null, x: 300, y: 350, color: '#55efc4' },
-  ])
-  const [needsItems, setNeedsItems] = useState<Item[]>([])
-  const [wantsItems, setWantsItems] = useState<Item[]>([])
-  const [score, setScore] = useState(0)
+  const [round, setRound] = useState(0)
+  const [showTip, setShowTip] = useState(false)
 
-  const correctAnswers: { [key: string]: 'need' | 'want' } = {
-    food: 'need',
-    water: 'need',
-    shelter: 'need',
-    clothes: 'need',
-    education: 'need',
-    toy: 'want',
-    game: 'want',
-    candy: 'want',
+  const roundPack = ROUNDS[round]
+  const totalRounds = ROUNDS.length
+
+  const [pool, setPool] = useState<ItemDef[]>([])
+  const [needs, setNeeds] = useState<ItemDef[]>([])
+  const [wants, setWants] = useState<ItemDef[]>([])
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+
+  // feedback
+  const [toast, setToast] = useState<{ title: string; desc?: string; tone: 'good' | 'warn' | 'info' } | null>(null)
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // tiny exchange animation
+  const [fly, setFly] = useState<FlyAnim | null>(null)
+  const poolRef = useRef<HTMLDivElement>(null)
+  const needsRef = useRef<HTMLDivElement>(null)
+  const wantsRef = useRef<HTMLDivElement>(null)
+  const itemElMap = useRef<Record<string, HTMLDivElement | null>>({})
+
+  const score = useMemo(() => {
+    let c = 0
+    for (const it of needs) if (it.correct === 'need') c++
+    for (const it of wants) if (it.correct === 'want') c++
+    return c
+  }, [needs, wants])
+
+  const done = pool.length === 0
+  const perfect = done && score === roundPack.items.length
+
+  const showToast = (t: { title: string; desc?: string; tone: 'good' | 'warn' | 'info' }) => {
+    setToast(t)
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    toastTimer.current = setTimeout(() => setToast(null), 1400)
   }
 
   useEffect(() => {
-    // Calculate score based on correct categorizations
-    let correct = 0
-    needsItems.forEach((item) => {
-      if (correctAnswers[item.id] === 'need') correct++
-    })
-    wantsItems.forEach((item) => {
-      if (correctAnswers[item.id] === 'want') correct++
-    })
-    setScore(correct)
-  }, [needsItems, wantsItems])
+    // new round
+    setPool(shuffle(roundPack.items))
+    setNeeds([])
+    setWants([])
+    setDraggingId(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [round])
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const updateCanvasSize = () => {
-      const rect = canvas.getBoundingClientRect()
-      canvas.width = rect.width
-      canvas.height = rect.height
-    }
-    updateCanvasSize()
-
-    const { gl } = initWebGL(canvas)
-    if (!gl) return
-
-    const setup = setupBasic2D(gl, canvas)
-    if (!setup) return
-
-    gl.clearColor(0.11, 0.13, 0.16, 1.0)
-    gl.enable(gl.BLEND)
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-
-    const handleResize = () => {
-      updateCanvasSize()
-      gl.viewport(0, 0, canvas.width, canvas.height)
-      if (setup.resolutionLocation) {
-        gl.uniform2f(setup.resolutionLocation, canvas.width, canvas.height)
-      }
-      render()
-    }
-
-    const render = () => {
-      gl.clear(gl.COLOR_BUFFER_BIT)
-
-      // Draw NEEDS area (left) – dark theme
-      const needsArea: Rectangle = {
-        x: canvas.width * 0.25,
-        y: canvas.height / 2,
-        width: canvas.width * 0.4,
-        height: canvas.height - 200,
-        color: '#14532d',
-      }
-      drawRectangle(gl, setup, needsArea)
-
-      // Draw WANTS area (right) – dark theme
-      const wantsArea: Rectangle = {
-        x: canvas.width * 0.75,
-        y: canvas.height / 2,
-        width: canvas.width * 0.4,
-        height: canvas.height - 200,
-        color: '#78350f',
-      }
-      drawRectangle(gl, setup, wantsArea)
-
-      // Draw items in their categories
-      const allCategorizedItems = [...needsItems, ...wantsItems]
-      const uncategorizedItems = items.filter(
-        (item) => !allCategorizedItems.find((ci) => ci.id === item.id)
-      )
-
-      // Draw uncategorized items (top area)
-      uncategorizedItems.forEach((item, index) => {
-        const itemX = 100 + (index % 4) * 150
-        const itemY = 100 + Math.floor(index / 4) * 100
-        const itemRect: Rectangle = {
-          x: itemX,
-          y: itemY,
-          width: 120,
-          height: 60,
-          color: selectedItem === item.id ? '#ff8800' : item.color,
-        }
-        drawRectangle(gl, setup, itemRect)
-      })
-
-      // Draw items in NEEDS area
-      needsItems.forEach((item, index) => {
-        const itemX = canvas.width * 0.25
-        const itemY = 150 + index * 80
-        const itemRect: Rectangle = {
-          x: itemX,
-          y: itemY,
-          width: 120,
-          height: 60,
-          color: item.color,
-        }
-        drawRectangle(gl, setup, itemRect)
-      })
-
-      // Draw items in WANTS area
-      wantsItems.forEach((item, index) => {
-        const itemX = canvas.width * 0.75
-        const itemY = 150 + index * 80
-        const itemRect: Rectangle = {
-          x: itemX,
-          y: itemY,
-          width: 120,
-          height: 60,
-          color: item.color,
-        }
-        drawRectangle(gl, setup, itemRect)
-      })
-    }
-
-    render()
-    window.addEventListener('resize', handleResize)
-
     return () => {
-      window.removeEventListener('resize', handleResize)
+      if (toastTimer.current) clearTimeout(toastTimer.current)
     }
-  }, [items, selectedItem, needsItems, wantsItems])
+  }, [])
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const coords = getCanvasCoordinates(e.nativeEvent, canvas)
-    const allCategorizedItems = [...needsItems, ...wantsItems]
-    const uncategorizedItems = items.filter(
-      (item) => !allCategorizedItems.find((ci) => ci.id === item.id)
-    )
-
-    for (let i = uncategorizedItems.length - 1; i >= 0; i--) {
-      const item = uncategorizedItems[i]
-      const itemX = 100 + (i % 4) * 150
-      const itemY = 100 + Math.floor(i / 4) * 100
-
-      if (
-        isPointInRectangle(coords.x, coords.y, {
-          x: itemX,
-          y: itemY,
-          width: 120,
-          height: 60,
-          color: item.color,
-        })
-      ) {
-        setSelectedItem(item.id)
-        setDragOffset({
-          x: coords.x - itemX,
-          y: coords.y - itemY,
-        })
-        break
-      }
-    }
+  const removeFromPool = (id: string) => {
+    setPool((p) => p.filter((x) => x.id !== id))
   }
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!selectedItem || !dragOffset) return
+  const animateDrop = (item: ItemDef, target: Category) => {
+    const el = itemElMap.current[item.id]
+    const fromRect = el?.getBoundingClientRect()
+    const toRect = (target === 'need' ? needsRef.current : wantsRef.current)?.getBoundingClientRect()
+    if (!fromRect || !toRect) return
 
-    const canvas = canvasRef.current
-    if (!canvas) return
+    setFly({
+      id: item.id,
+      emoji: item.emoji,
+      from: { x: fromRect.left + fromRect.width / 2, y: fromRect.top + fromRect.height / 2 },
+      to: { x: toRect.left + toRect.width / 2, y: toRect.top + toRect.height / 2 },
+    })
 
-    const coords = getCanvasCoordinates(e.nativeEvent, canvas)
-    const needsAreaX = canvas.width * 0.25
-    const wantsAreaX = canvas.width * 0.75
-    const needsAreaWidth = canvas.width * 0.4
-    const wantsAreaWidth = canvas.width * 0.4
-    const areaHeight = canvas.height - 200
-    const areaTop = 100
-    const areaBottom = areaTop + areaHeight
+    setTimeout(() => setFly(null), 520)
+  }
 
-    // Check if dropped in NEEDS area
-    if (
-      coords.x >= needsAreaX - needsAreaWidth / 2 &&
-      coords.x <= needsAreaX + needsAreaWidth / 2 &&
-      coords.y >= areaTop &&
-      coords.y <= areaBottom
-    ) {
-      const item = items.find((i) => i.id === selectedItem)
-      if (item) {
-        setNeedsItems([...needsItems, { ...item, category: 'need' }])
-        setSelectedItem(null)
-        setDragOffset(null)
-      }
+  const dropTo = (target: Category, id: string) => {
+    const item = pool.find((x) => x.id === id)
+    if (!item) return
+
+    animateDrop(item, target)
+    removeFromPool(id)
+
+    if (target === 'need') setNeeds((n) => [item, ...n])
+    else setWants((w) => [item, ...w])
+
+    const isCorrect = item.correct === target
+    showToast({
+      title: isCorrect ? 'Correct ✅' : 'Oops 😅',
+      desc: isCorrect ? `${item.name} is a ${target.toUpperCase()}.` : `${item.name} should go to ${item.correct.toUpperCase()}.`,
+      tone: isCorrect ? 'good' : 'warn',
+    })
+  }
+
+  const resetRound = () => {
+    setPool(shuffle(roundPack.items))
+    setNeeds([])
+    setWants([])
+    setDraggingId(null)
+    showToast({ title: 'Reset', desc: 'Try again!', tone: 'info' })
+  }
+
+  const nextRound = () => {
+    if (!done) {
+      showToast({ title: 'Not finished yet', desc: 'Sort all items first.', tone: 'warn' })
       return
     }
-
-    // Check if dropped in WANTS area
-    if (
-      coords.x >= wantsAreaX - wantsAreaWidth / 2 &&
-      coords.x <= wantsAreaX + wantsAreaWidth / 2 &&
-      coords.y >= areaTop &&
-      coords.y <= areaBottom
-    ) {
-      const item = items.find((i) => i.id === selectedItem)
-      if (item) {
-        setWantsItems([...wantsItems, { ...item, category: 'want' }])
-        setSelectedItem(null)
-        setDragOffset(null)
-      }
+    if (round >= totalRounds - 1) {
+      showToast({ title: 'All rounds done!', desc: 'You finished 🎉', tone: 'good' })
       return
     }
+    setRound((r) => r + 1)
   }
 
-  const handleMouseUp = () => {
-    setSelectedItem(null)
-    setDragOffset(null)
+  const toneCls = (tone: 'good' | 'warn' | 'info') => {
+    if (tone === 'good') return 'bg-emerald-600/90 border-emerald-200 text-emerald-50'
+    if (tone === 'warn') return 'bg-amber-600/90 border-amber-200 text-amber-50'
+    return 'bg-sky-600/85 border-sky-200 text-sky-50'
   }
-
-  const reset = () => {
-    setNeedsItems([])
-    setWantsItems([])
-    setScore(0)
-  }
-
-  const maxScore = Object.keys(correctAnswers).length
 
   return (
-    <div className="h-full flex flex-col bg-gray-900">
-      <div className="flex-1 relative">
-        <canvas
-          ref={canvasRef}
-          className="w-full h-full cursor-pointer"
-          style={{ display: 'block' }}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-        />
+    <div className="h-full flex flex-col bg-[#eef6ff]">
+      <div className="flex-1 relative p-6">
+        {/* main centered layout */}
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-5 h-full">
+          {/* left panel */}
+          <div className="self-center">
+            <div className="bg-white/85 backdrop-blur-xl border border-white/60 rounded-2xl shadow-lg p-4">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-black text-gray-900">🎯 Needs vs Wants</div>
+                <button
+                  onClick={() => setShowTip(true)}
+                  className="text-xs font-bold px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white transition"
+                >
+                  i Tip
+                </button>
+              </div>
 
-        {/* Instructions */}
-        <div className="absolute top-4 left-4 bg-gray-800/90 rounded-lg p-4 shadow-lg max-w-xs border border-gray-700">
-          <h4 className="font-bold text-gray-100 mb-2">🎯 Needs vs Wants</h4>
-          <p className="text-sm text-gray-300 mb-2">
-            Drag items to categorize them as Needs or Wants!
-          </p>
-        </div>
+              <div className="mt-2 flex flex-wrap gap-2 items-center">
+                <span className="text-xs font-bold px-2 py-1 rounded-full border bg-slate-100 text-slate-800 border-slate-200">
+                  Round {round + 1}/{totalRounds}
+                </span>
+                <span className="text-xs font-bold px-2 py-1 rounded-full border bg-slate-100 text-slate-800 border-slate-200">
+                  Score {score}/{roundPack.items.length}
+                </span>
+                {done ? (
+                  <span
+                    className={`text-xs font-bold px-2 py-1 rounded-full border ${
+                      perfect
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                        : 'bg-amber-100 text-amber-800 border-amber-200'
+                    }`}
+                  >
+                    {perfect ? 'Perfect ✅' : 'Done'}
+                  </span>
+                ) : (
+                  <span className="text-xs font-bold px-2 py-1 rounded-full border bg-slate-100 text-slate-800 border-slate-200">
+                    Sorting…
+                  </span>
+                )}
+              </div>
 
-        {/* Labels */}
-        <div className="absolute top-20 left-1/4 transform -translate-x-1/2 bg-green-600 text-white rounded-full px-6 py-2 shadow-lg border border-green-500/50">
-          <span className="font-bold">NEEDS</span>
-        </div>
-        <div className="absolute top-20 right-1/4 transform translate-x-1/2 bg-amber-600 text-white rounded-full px-6 py-2 shadow-lg border border-amber-500/50">
-          <span className="font-bold">WANTS</span>
-        </div>
+              <div className="mt-3 text-sm font-semibold text-gray-800">
+                {roundPack.title}
+              </div>
+              <div className="mt-1 text-xs text-gray-600">
+                Drag each item card into a basket. You’ll instantly see it show up inside.
+              </div>
 
-        {/* Score */}
-        <div className="absolute top-4 right-4 bg-gray-800 text-white rounded-lg px-6 py-4 shadow-lg border border-gray-600">
-          <div className="text-center">
-            <div className="text-sm font-semibold text-gray-300">Score</div>
-            <div className="text-3xl font-bold">
-              {score}/{maxScore}
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <button
+                  onClick={resetRound}
+                  className="rounded-xl px-4 py-2.5 font-bold bg-gray-100 hover:bg-gray-200 text-gray-800 transition"
+                >
+                  Reset
+                </button>
+                <button
+                  onClick={nextRound}
+                  className={`rounded-xl px-4 py-2.5 font-bold transition ${
+                    round >= totalRounds - 1
+                      ? 'bg-gray-200 text-gray-500'
+                      : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                  }`}
+                >
+                  Next →
+                </button>
+              </div>
+
+              <div className="mt-3 text-xs text-gray-600">
+                Rule of thumb: If you can live safely without it, it’s usually a <b>WANT</b>.
+              </div>
+            </div>
+          </div>
+
+          {/* center game area */}
+          <div className="self-center">
+            <div className="bg-white/60 border border-white/60 rounded-3xl shadow-xl p-5">
+              {/* pool */}
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-black text-gray-900">Items</div>
+                <div className="text-xs font-bold text-gray-600">
+                  Remaining: <span className="text-gray-900">{pool.length}</span>
+                </div>
+              </div>
+
+              <div
+                ref={poolRef}
+                className="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"
+              >
+                {pool.map((it) => (
+                  <div
+                    key={it.id}
+                    ref={(el) => {
+                      itemElMap.current[it.id] = el
+                    }}
+                    draggable
+                    onDragStart={(e) => {
+                      setDraggingId(it.id)
+                      e.dataTransfer.setData('text/plain', it.id)
+                      e.dataTransfer.effectAllowed = 'move'
+                    }}
+                    onDragEnd={() => setDraggingId(null)}
+                    className={`select-none rounded-2xl border bg-white shadow-sm px-3 py-3 cursor-grab active:cursor-grabbing transition ${
+                      draggingId === it.id ? 'border-sky-400 ring-2 ring-sky-200' : 'border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl bg-slate-100">
+                        {it.emoji}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-black text-gray-900 truncate">{it.name}</div>
+                        <div className="text-[11px] text-gray-500">Drag me →</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* baskets */}
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* NEEDS */}
+                <div
+                  ref={needsRef}
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    e.dataTransfer.dropEffect = 'move'
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    const id = e.dataTransfer.getData('text/plain') || draggingId
+                    if (id) dropTo('need', id)
+                  }}
+                  className="rounded-3xl border border-emerald-200 bg-emerald-50/80 p-4 min-h-[240px] relative overflow-hidden"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="inline-flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-full font-black shadow">
+                      🧺 NEEDS
+                    </div>
+                    <div className="text-xs font-bold text-emerald-900/70">
+                      {needs.length} items
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {needs.length === 0 ? (
+                      <div className="text-sm text-emerald-900/60 font-semibold">
+                        Drop NEED items here (Food, Water, Bills…)
+                      </div>
+                    ) : (
+                      needs.map((it) => (
+                        <div
+                          key={it.id}
+                          className="px-3 py-1.5 rounded-full bg-white border border-emerald-200 text-sm font-bold text-emerald-900 shadow-sm"
+                        >
+                          {it.emoji} {it.name}
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* decorative basket weave */}
+                  <div className="absolute -bottom-12 -right-12 w-56 h-56 rounded-full bg-emerald-200/40 blur-2xl" />
+                </div>
+
+                {/* WANTS */}
+                <div
+                  ref={wantsRef}
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    e.dataTransfer.dropEffect = 'move'
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    const id = e.dataTransfer.getData('text/plain') || draggingId
+                    if (id) dropTo('want', id)
+                  }}
+                  className="rounded-3xl border border-amber-200 bg-amber-50/80 p-4 min-h-[240px] relative overflow-hidden"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="inline-flex items-center gap-2 bg-amber-600 text-white px-4 py-2 rounded-full font-black shadow">
+                      🧺 WANTS
+                    </div>
+                    <div className="text-xs font-bold text-amber-900/70">
+                      {wants.length} items
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {wants.length === 0 ? (
+                      <div className="text-sm text-amber-900/60 font-semibold">
+                        Drop WANT items here (Toys, Treats, Upgrades…)
+                      </div>
+                    ) : (
+                      wants.map((it) => (
+                        <div
+                          key={it.id}
+                          className="px-3 py-1.5 rounded-full bg-white border border-amber-200 text-sm font-bold text-amber-900 shadow-sm"
+                        >
+                          {it.emoji} {it.name}
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="absolute -bottom-12 -left-12 w-56 h-56 rounded-full bg-amber-200/40 blur-2xl" />
+                </div>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* fly animation (simple gimmick) */}
+        {fly && (
+          <div
+            className="fixed z-50 pointer-events-none text-2xl"
+            style={{
+              left: fly.from.x,
+              top: fly.from.y,
+              transform: 'translate(-50%, -50%)',
+              animation: 'flyTo 520ms cubic-bezier(0.22, 1, 0.36, 1) forwards',
+              ['--toX' as any]: `${fly.to.x - fly.from.x}px`,
+              ['--toY' as any]: `${fly.to.y - fly.from.y}px`,
+            }}
+          >
+            {fly.emoji}
+          </div>
+        )}
+
+        <style jsx global>{`
+          @keyframes flyTo {
+            0% {
+              transform: translate(-50%, -50%) translate(0px, 0px) scale(1);
+              opacity: 1;
+              filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.25));
+            }
+            70% {
+              opacity: 1;
+            }
+            100% {
+              transform: translate(-50%, -50%) translate(var(--toX), var(--toY)) scale(0.9);
+              opacity: 0;
+              filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.1));
+            }
+          }
+        `}</style>
+
+        {/* toast */}
+        {toast && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+            <div className={`rounded-2xl border px-4 py-3 shadow-2xl backdrop-blur-xl ${toneCls(toast.tone)}`}>
+              <div className="font-black">{toast.title}</div>
+              {toast.desc && <div className="text-sm opacity-95">{toast.desc}</div>}
+            </div>
+          </div>
+        )}
+
+        {/* tip modal */}
+        {showTip && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setShowTip(false)} />
+            <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-white/60 overflow-hidden">
+              <div className="p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-lg font-black text-gray-900">💡 Needs vs Wants</div>
+                    <div className="text-sm text-gray-600 mt-1">
+                      <b className="text-emerald-700">Needs</b> help you live and stay safe.{' '}
+                      <b className="text-amber-700">Wants</b> are nice extras.
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowTip(false)}
+                    className="rounded-xl px-3 py-2 font-bold bg-gray-100 hover:bg-gray-200 text-gray-800"
+                  >
+                    Close
+                  </button>
+                </div>
+
+                <div className="mt-4 grid md:grid-cols-2 gap-3">
+                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                    <div className="font-black text-emerald-800">NEEDS ✅</div>
+                    <ul className="mt-2 text-sm text-emerald-900/80 list-disc pl-5 space-y-1">
+                      <li>Food, water, shelter, basic clothes</li>
+                      <li>School essentials, transport, basic bills</li>
+                      <li>Medicine and safety items</li>
+                    </ul>
+                  </div>
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                    <div className="font-black text-amber-800">WANTS 🎉</div>
+                    <ul className="mt-2 text-sm text-amber-900/80 list-disc pl-5 space-y-1">
+                      <li>Toys, games, treats, fancy extras</li>
+                      <li>Upgrades (premium versions)</li>
+                      <li>Entertainment and luxury items</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="mt-4 text-sm text-gray-700">
+                  Ask: <b>“Will I be okay without this?”</b> If yes, it’s usually a{' '}
+                  <b className="text-amber-700">Want</b>.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Control panel */}
-      <div className="bg-gray-800 border-t border-gray-700 p-4">
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-300">
-            {score === maxScore ? (
-              <span className="text-green-400 font-bold">🎉 Perfect! All correct!</span>
-            ) : (
-              <span>
-                Categorized: <span className="font-semibold">{score}</span>/{maxScore} correctly
-              </span>
-            )}
+      {/* bottom status bar */}
+      <div className="bg-white/70 border-t border-white/60 backdrop-blur-xl px-4 py-3">
+        <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-2 text-sm text-gray-700">
+          <div className="font-semibold">
+            Sorted: <span className="font-black">{needs.length + wants.length}</span> / {roundPack.items.length}
           </div>
-          <button
-            onClick={reset}
-            className="bg-gray-600 hover:bg-gray-500 text-gray-100 font-semibold text-sm px-4 py-2 rounded-lg transition-colors border border-gray-500"
-          >
-            Reset
-          </button>
+          <div className="text-gray-600">
+            {done ? (perfect ? 'Perfect round ✅' : 'Round done — try resetting to improve 👀') : 'Drag items into a basket.'}
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
+function toneCls(tone: 'good' | 'warn' | 'info') {
+  if (tone === 'good') return 'bg-emerald-600/90 border-emerald-200 text-emerald-50'
+  if (tone === 'warn') return 'bg-amber-600/90 border-amber-200 text-amber-50'
+  return 'bg-sky-600/85 border-sky-200 text-sky-50'
+}
