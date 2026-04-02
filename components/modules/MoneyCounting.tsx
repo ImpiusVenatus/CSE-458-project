@@ -34,34 +34,30 @@ interface Particle {
   color: string
 }
 
+type Difficulty = 'easy' | 'medium' | 'hard'
+
 const COUNTING_AREA_Y_OFFSET = 110
 
-// Balanced difficulty: lots of “combo” totals (forces mixing coins + notes)
 const GOAL_POOL = [
   11, 12, 13, 14, 15, 16, 17, 18, 19,
-
   21, 22, 23, 24, 26, 27, 28, 29,
   31, 32, 33, 34, 36, 37, 38, 39,
   41, 42, 43, 44, 46, 47, 48, 49,
-
   51, 52, 53, 54, 56, 57, 58, 59,
   61, 62, 63, 64, 66, 67, 68, 69,
   71, 72, 73, 74, 76, 77, 78, 79,
   81, 82, 83, 84, 86, 87, 88, 89,
   91, 92, 93, 94, 96, 97, 98, 99,
-
   101, 103, 104, 106, 107, 108, 109,
   112, 114, 117, 118, 119,
   121, 123, 126, 127, 128, 129,
   131, 133, 136, 137, 138, 139,
   141, 143, 146, 147, 148, 149,
-
   151, 152, 153, 156, 157, 158, 159,
   161, 162, 163, 166, 167, 168, 169,
   171, 172, 173, 176, 177, 178, 179,
   181, 182, 183, 186, 187, 188, 189,
   191, 192, 193, 196, 197, 198, 199,
-
   201, 203, 204, 206, 207, 208, 209,
   212, 214, 217, 218, 219,
   221, 223, 226, 227, 228, 229,
@@ -72,7 +68,6 @@ const GOAL_POOL = [
   271, 273, 276, 277, 278, 279,
   281, 283, 286, 287, 288, 289,
   291, 293, 296, 297, 298, 299,
-
   501, 503, 506, 507, 508, 509,
   512, 514, 517, 518, 519,
   521, 523, 526, 527, 528, 529,
@@ -82,11 +77,47 @@ const GOAL_POOL = [
 ]
 
 const CHALLENGE_COUNT = 12
-
 const HEADER_HEIGHT = 80
 const PALETTE_Y = HEADER_HEIGHT + 28
 const PALETTE_BAR_HEIGHT = 56
 const PALETTE_PADDING = 50
+
+// Bangladesh currency palette
+const BANGLADESH_CURRENCY: Omit<CurrencyItem, 'x' | 'y'>[] = [
+  { id: 'coin-1', type: 'coin', value: 1, color: '#b8b8b8', radius: 26 },
+  { id: 'coin-2', type: 'coin', value: 2, color: '#a8a8a8', radius: 30 },
+  { id: 'coin-5', type: 'coin', value: 5, color: '#989898', radius: 34 },
+  { id: 'bill-10', type: 'bill', value: 10, color: '#b85445', width: 76, height: 38 },
+  { id: 'bill-20', type: 'bill', value: 20, color: '#3d9b5c', width: 76, height: 38 },
+  { id: 'bill-50', type: 'bill', value: 50, color: '#e89550', width: 76, height: 38 },
+  { id: 'bill-100', type: 'bill', value: 100, color: '#3b82b6', width: 76, height: 38 },
+  { id: 'bill-200', type: 'bill', value: 200, color: '#d4af37', width: 76, height: 38 },
+  { id: 'bill-500', type: 'bill', value: 500, color: '#40916c', width: 76, height: 38 },
+  { id: 'bill-1000', type: 'bill', value: 1000, color: '#6b7280', width: 76, height: 38 },
+]
+
+// Extract and sort denominations purely mathematically for the Greedy Algorithm
+const DENOMINATIONS = Array.from(new Set(BANGLADESH_CURRENCY.map((c) => c.value))).sort((a, b) => b - a)
+
+// MATHEMATICAL ENGINE: Calculates absolute minimum notes
+function getMinNotes(target: number): number {
+  let count = 0
+  let remaining = target
+  for (const val of DENOMINATIONS) {
+    if (remaining <= 0) break
+    const notes = Math.floor(remaining / val)
+    count += notes
+    remaining %= val
+  }
+  return count
+}
+
+// Applies difficulty bounds constraints
+function getMaxAllowedNotes(target: number, level: Difficulty): number {
+  const nMin = getMinNotes(target)
+  const multiplier = level === 'hard' ? 1.0 : level === 'medium' ? 2.5 : 5.0
+  return Math.min(Math.ceil(nMin * multiplier), 50) // Global hard cap of 50
+}
 
 function generateChallenges(): number[] {
   const out: number[] = []
@@ -112,10 +143,7 @@ function addBurst(particlesRef: React.MutableRefObject<Particle[]>, x: number, y
   }
 }
 
-// ---------- color helpers (for richer currency rendering) ----------
-function clamp01(n: number) {
-  return Math.max(0, Math.min(1, n))
-}
+function clamp01(n: number) { return Math.max(0, Math.min(1, n)) }
 function hexToRgb(hex: string) {
   const h = hex.replace('#', '').trim()
   const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h
@@ -130,34 +158,11 @@ function mix(a: string, b: string, t: number) {
   const A = hexToRgb(a)
   const B = hexToRgb(b)
   const tt = clamp01(t)
-  return rgbToHex(
-    Math.round(A.r + (B.r - A.r) * tt),
-    Math.round(A.g + (B.g - A.g) * tt),
-    Math.round(A.b + (B.b - A.b) * tt)
-  )
+  return rgbToHex(Math.round(A.r + (B.r - A.r) * tt), Math.round(A.g + (B.g - A.g) * tt), Math.round(A.b + (B.b - A.b) * tt))
 }
-function lighten(hex: string, t: number) {
-  return mix(hex, '#ffffff', t)
-}
-function darken(hex: string, t: number) {
-  return mix(hex, '#000000', t)
-}
+function lighten(hex: string, t: number) { return mix(hex, '#ffffff', t) }
+function darken(hex: string, t: number) { return mix(hex, '#000000', t) }
 
-// Bangladesh currency palette
-const BANGLADESH_CURRENCY: Omit<CurrencyItem, 'x' | 'y'>[] = [
-  { id: 'coin-1', type: 'coin', value: 1, color: '#b8b8b8', radius: 26 },
-  { id: 'coin-2', type: 'coin', value: 2, color: '#a8a8a8', radius: 30 },
-  { id: 'coin-5', type: 'coin', value: 5, color: '#989898', radius: 34 },
-  { id: 'bill-10', type: 'bill', value: 10, color: '#b85445', width: 76, height: 38 },
-  { id: 'bill-20', type: 'bill', value: 20, color: '#3d9b5c', width: 76, height: 38 },
-  { id: 'bill-50', type: 'bill', value: 50, color: '#e89550', width: 76, height: 38 },
-  { id: 'bill-100', type: 'bill', value: 100, color: '#3b82b6', width: 76, height: 38 },
-  { id: 'bill-200', type: 'bill', value: 200, color: '#d4af37', width: 76, height: 38 },
-  { id: 'bill-500', type: 'bill', value: 500, color: '#40916c', width: 76, height: 38 },
-  { id: 'bill-1000', type: 'bill', value: 1000, color: '#6b7280', width: 76, height: 38 },
-]
-
-/** Palette items stay fixed at top; positions depend on canvas width. */
 function getPaletteItems(canvasWidth: number): CurrencyItem[] {
   const n = BANGLADESH_CURRENCY.length
   const spacing = (canvasWidth - 2 * PALETTE_PADDING) / Math.max(1, n - 1)
@@ -172,34 +177,21 @@ function createDuplicate(template: Omit<CurrencyItem, 'x' | 'y'>, x: number, y: 
   return { ...template, id, x, y }
 }
 
-type CashRegister = {
-  x: number
-  y: number
-  width: number
-  height: number
-  trayX: number
-  trayY: number
-  trayW: number
-  trayH: number
-}
+type CashRegister = { x: number, y: number, width: number, height: number, trayX: number, trayY: number, trayW: number, trayH: number }
 
 function getCashRegister(w: number, h: number): CashRegister {
   const baseW = Math.min(560, Math.max(360, w * 0.58))
   const baseH = Math.min(200, Math.max(160, h * 0.24))
   const x = w * 0.5
   const y = h - COUNTING_AREA_Y_OFFSET
-
   const trayW = baseW * 0.56
   const trayH = baseH * 0.28
   const trayX = x - baseW * 0.06
   const trayY = y + baseH * 0.16
-
   return { x, y, width: baseW, height: baseH, trayX, trayY, trayW, trayH }
 }
 
-function isPlaced(item: CurrencyItem): boolean {
-  return item.id.startsWith('placed-')
-}
+function isPlaced(item: CurrencyItem): boolean { return item.id.startsWith('placed-') }
 
 function isInTray(item: CurrencyItem, reg: CashRegister): boolean {
   const left = reg.trayX - reg.trayW / 2
@@ -209,12 +201,7 @@ function isInTray(item: CurrencyItem, reg: CashRegister): boolean {
   return item.x >= left && item.x <= right && item.y >= top && item.y <= bottom
 }
 
-type TrashZone = {
-  x: number
-  y: number
-  width: number
-  height: number
-}
+type TrashZone = { x: number, y: number, width: number, height: number }
 
 function pointInRect(px: number, py: number, r: TrashZone) {
   const left = r.x - r.width / 2
@@ -228,6 +215,7 @@ export default function MoneyCounting() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animationRef = useRef<number | null>(null)
 
+  const [difficulty, setDifficulty] = useState<Difficulty>('medium')
   const [selectedItem, setSelectedItem] = useState<string | null>(null)
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null)
   const [totalValue, setTotalValue] = useState(0)
@@ -245,6 +233,7 @@ export default function MoneyCounting() {
   const paletteItems = getPaletteItems(canvasSize.w)
   const allItems = [...paletteItems, ...placedItems]
   const goal = challenges[challengeIndex] ?? 0
+  const maxAllowedNotes = useMemo(() => getMaxAllowedNotes(goal, difficulty), [goal, difficulty])
 
   const itemsRef = useRef<CurrencyItem[]>(allItems)
   const selectedRef = useRef<string | null>(null)
@@ -270,12 +259,7 @@ export default function MoneyCounting() {
     const width = Math.max(72, Math.min(112, w * 0.12))
     const height = Math.max(72, Math.min(112, h * 0.14))
     const margin = 26
-    return {
-      x: w - margin - width / 2,
-      y: h - margin - height / 2,
-      width,
-      height,
-    }
+    return { x: w - margin - width / 2, y: h - margin - height / 2, width, height }
   }, [canvasSize.w, canvasSize.h])
 
   useEffect(() => {
@@ -309,24 +293,10 @@ export default function MoneyCounting() {
     let lastTime = performance.now()
     const startTime = lastTime
 
-    const JOLLY_COLORS = [
-      '#fef08a',
-      '#fde047',
-      '#facc15',
-      '#fef3c7',
-      '#a7f3d0',
-      '#6ee7b7',
-      '#fbcfe8',
-      '#f9a8d4',
-      '#c4b5fd',
-      '#a78bfa',
-      '#fcd34d',
-      '#fbbf24',
-    ]
+    const JOLLY_COLORS = ['#fef08a', '#fde047', '#facc15', '#fef3c7', '#a7f3d0', '#6ee7b7', '#fbcfe8', '#f9a8d4', '#c4b5fd', '#a78bfa', '#fcd34d', '#fbbf24']
 
     const numFloating = 55
-    const floatingParticles: { x: number; y: number; vx: number; vy: number; phase: number; size: number; color: string }[] =
-      []
+    const floatingParticles: { x: number; y: number; vx: number; vy: number; phase: number; size: number; color: string }[] = []
     const playTopInit = PALETTE_Y + PALETTE_BAR_HEIGHT / 2 + 24
     for (let i = 0; i < numFloating; i++) {
       floatingParticles.push({
@@ -350,31 +320,16 @@ export default function MoneyCounting() {
       gl.viewport(0, 0, w, h)
       if (setup.resolutionLocation) gl.uniform2f(setup.resolutionLocation, w, h)
 
-      // background
       gl.clearColor(0.11, 0.13, 0.16, 1)
       gl.clear(gl.COLOR_BUFFER_BIT)
 
-      // Palette strip
-      const paletteBar: Rectangle = {
-        x: w / 2,
-        y: PALETTE_Y,
-        width: w,
-        height: PALETTE_BAR_HEIGHT,
-        color: '#1a2332',
-      }
+      const paletteBar: Rectangle = { x: w / 2, y: PALETTE_Y, width: w, height: PALETTE_BAR_HEIGHT, color: '#1a2332' }
       drawRectangle(gl, setup, paletteBar)
-      drawRectangle(gl, setup, {
-        x: w / 2,
-        y: PALETTE_Y + PALETTE_BAR_HEIGHT / 2,
-        width: w,
-        height: 2,
-        color: '#334155',
-      })
+      drawRectangle(gl, setup, { x: w / 2, y: PALETTE_Y + PALETTE_BAR_HEIGHT / 2, width: w, height: 2, color: '#334155' })
 
       const playTop = PALETTE_Y + PALETTE_BAR_HEIGHT / 2 + 24
       const playBottom = h - COUNTING_AREA_Y_OFFSET - 40
 
-      // floating background dots
       for (let i = 0; i < floatingParticles.length; i++) {
         const p = floatingParticles[i]
         const bouncy = 0.8 * Math.sin(t * 2.2 + p.phase) + 0.6 * Math.cos(t * 1.7 + p.phase * 0.9)
@@ -387,37 +342,20 @@ export default function MoneyCounting() {
         p.x += p.vx * dt
         p.y += p.vy * dt
 
-        if (p.x < 20) {
-          p.x = 20
-          p.vx *= -0.6
-        }
-        if (p.x > w - 20) {
-          p.x = w - 20
-          p.vx *= -0.6
-        }
-        if (p.y < playTop) {
-          p.y = playTop
-          p.vy *= -0.6
-        }
-        if (p.y > playBottom) {
-          p.y = playBottom
-          p.vy *= -0.6
-        }
+        if (p.x < 20) { p.x = 20; p.vx *= -0.6 }
+        if (p.x > w - 20) { p.x = w - 20; p.vx *= -0.6 }
+        if (p.y < playTop) { p.y = playTop; p.vy *= -0.6 }
+        if (p.y > playBottom) { p.y = playBottom; p.vy *= -0.6 }
 
         const twinkle = 0.7 + 0.35 * Math.sin(t * 3 + p.phase)
         drawCircle(gl, setup, { x: p.x, y: p.y, radius: p.size * twinkle, color: p.color })
       }
 
       const reg = getCashRegister(w, h)
-
       const items = itemsRef.current
       const selected = selectedRef.current
+      const totalHere = items.filter((it) => isPlaced(it) && isInTray(it, reg)).reduce((s, it) => s + it.value, 0)
 
-      const totalHere = items
-        .filter((it) => isPlaced(it) && isInTray(it, reg))
-        .reduce((s, it) => s + it.value, 0)
-
-      // smooth display total
       displayTotalRef.current += (totalHere - displayTotalRef.current) * 0.12
       const rounded = Math.round(displayTotalRef.current)
       if (rounded !== lastDisplayRef.current) {
@@ -425,199 +363,57 @@ export default function MoneyCounting() {
         setDisplayTotal(rounded)
       }
 
-      // -------- Cash Register / Counter --------
       const pulse = totalHere > 0 ? 0.08 + 0.05 * Math.sin(t * 4) : 0
 
-      // shadow
-      drawRoundedRectangle(gl, setup, {
-        x: reg.x,
-        y: reg.y + 7,
-        width: reg.width,
-        height: reg.height,
-        color: 'rgba(0,0,0,0.35)',
-        cornerRadius: 22,
-      })
-
-      // body
-      drawRoundedRectangle(gl, setup, {
-        x: reg.x,
-        y: reg.y,
-        width: reg.width,
-        height: reg.height,
-        color: '#111827',
-        cornerRadius: 22,
-      })
-
-      // highlight strip (depth)
-      drawRoundedRectangle(gl, setup, {
-        x: reg.x - reg.width * 0.02,
-        y: reg.y - reg.height * 0.06,
-        width: reg.width * 0.86,
-        height: reg.height * 0.05,
-        color: 'rgba(255,255,255,0.05)',
-        cornerRadius: 16,
-      })
-
-      // top panel
-      drawRoundedRectangle(gl, setup, {
-        x: reg.x,
-        y: reg.y - reg.height * 0.18,
-        width: reg.width * 0.92,
-        height: reg.height * 0.42,
-        color: '#0b1220',
-        cornerRadius: 18,
-      })
-
-      // screen (now decorative only — no numbers inside)
-      drawRoundedRectangle(gl, setup, {
-        x: reg.x - reg.width * 0.18,
-        y: reg.y - reg.height * 0.22,
-        width: reg.width * 0.34,
-        height: reg.height * 0.20,
-        color: totalHere === goal && goal > 0 ? '#064e3b' : '#0f172a',
-        cornerRadius: 14,
-      })
+      drawRoundedRectangle(gl, setup, { x: reg.x, y: reg.y + 7, width: reg.width, height: reg.height, color: 'rgba(0,0,0,0.35)', cornerRadius: 22 })
+      drawRoundedRectangle(gl, setup, { x: reg.x, y: reg.y, width: reg.width, height: reg.height, color: '#111827', cornerRadius: 22 })
+      drawRoundedRectangle(gl, setup, { x: reg.x - reg.width * 0.02, y: reg.y - reg.height * 0.06, width: reg.width * 0.86, height: reg.height * 0.05, color: 'rgba(255,255,255,0.05)', cornerRadius: 16 })
+      drawRoundedRectangle(gl, setup, { x: reg.x, y: reg.y - reg.height * 0.18, width: reg.width * 0.92, height: reg.height * 0.42, color: '#0b1220', cornerRadius: 18 })
+      drawRoundedRectangle(gl, setup, { x: reg.x - reg.width * 0.18, y: reg.y - reg.height * 0.22, width: reg.width * 0.34, height: reg.height * 0.20, color: totalHere === goal && goal > 0 ? '#064e3b' : '#0f172a', cornerRadius: 14 })
       if (totalHere > 0) {
-        drawRoundedRectangle(gl, setup, {
-          x: reg.x - reg.width * 0.18,
-          y: reg.y - reg.height * 0.22,
-          width: reg.width * 0.34 + 8,
-          height: reg.height * 0.20 + 8,
-          color: totalHere === goal && goal > 0 ? '#34d399' : pulse > 0 ? '#60a5fa' : '#3b82f6',
-          cornerRadius: 16,
-        })
+        drawRoundedRectangle(gl, setup, { x: reg.x - reg.width * 0.18, y: reg.y - reg.height * 0.22, width: reg.width * 0.34 + 8, height: reg.height * 0.20 + 8, color: totalHere === goal && goal > 0 ? '#34d399' : pulse > 0 ? '#60a5fa' : '#3b82f6', cornerRadius: 16 })
       }
-      // subtle scan lines
       for (let k = 0; k < 3; k++) {
-        drawRectangle(gl, setup, {
-          x: reg.x - reg.width * 0.18,
-          y: reg.y - reg.height * (0.26 - k * 0.04),
-          width: reg.width * 0.26,
-          height: 2,
-          color: 'rgba(255,255,255,0.07)',
-        })
+        drawRectangle(gl, setup, { x: reg.x - reg.width * 0.18, y: reg.y - reg.height * (0.26 - k * 0.04), width: reg.width * 0.26, height: 2, color: 'rgba(255,255,255,0.07)' })
       }
 
-      // buttons area
       const btnPanelX = reg.x + reg.width * 0.18
       const btnPanelY = reg.y - reg.height * 0.20
       const btnPanelW = reg.width * 0.40
       const btnPanelH = reg.height * 0.22
+      drawRoundedRectangle(gl, setup, { x: btnPanelX, y: btnPanelY, width: btnPanelW, height: btnPanelH, color: '#111c2e', cornerRadius: 16 })
 
-      drawRoundedRectangle(gl, setup, {
-        x: btnPanelX,
-        y: btnPanelY,
-        width: btnPanelW,
-        height: btnPanelH,
-        color: '#111c2e',
-        cornerRadius: 16,
-      })
-
-      // KEEP THE THREE DOTS CENTERED (inside the panel)
       const dotCenterX = btnPanelX
       const dotY = btnPanelY
       const dotGap = btnPanelW * 0.14
       const dotR = 7
-      ;(['#f59e0b', '#22c55e', '#60a5fa'] as const).forEach((c, i) => {
-        const dx = (i - 1) * dotGap
-        drawCircle(gl, setup, { x: dotCenterX + dx, y: dotY, radius: dotR, color: c })
-      })
+        ; (['#f59e0b', '#22c55e', '#60a5fa'] as const).forEach((c, i) => {
+          const dx = (i - 1) * dotGap
+          drawCircle(gl, setup, { x: dotCenterX + dx, y: dotY, radius: dotR, color: c })
+        })
 
-      // receipt slot (extra detail)
-      drawRoundedRectangle(gl, setup, {
-        x: reg.x - reg.width * 0.02,
-        y: reg.y - reg.height * 0.36,
-        width: reg.width * 0.46,
-        height: reg.height * 0.07,
-        color: '#0a0f1a',
-        cornerRadius: 12,
-      })
-      drawRectangle(gl, setup, {
-        x: reg.x - reg.width * 0.02,
-        y: reg.y - reg.height * 0.365,
-        width: reg.width * 0.40,
-        height: 2,
-        color: 'rgba(255,255,255,0.10)',
-      })
+      drawRoundedRectangle(gl, setup, { x: reg.x - reg.width * 0.02, y: reg.y - reg.height * 0.36, width: reg.width * 0.46, height: reg.height * 0.07, color: '#0a0f1a', cornerRadius: 12 })
+      drawRectangle(gl, setup, { x: reg.x - reg.width * 0.02, y: reg.y - reg.height * 0.365, width: reg.width * 0.40, height: 2, color: 'rgba(255,255,255,0.10)' })
 
-      // keypad dots (right side detail)
       const padCx = reg.x + reg.width * 0.28
       const padCy = reg.y - reg.height * 0.18
       const dx = reg.width * 0.05
       const dy = reg.height * 0.06
       for (let r = 0; r < 3; r++) {
         for (let c = 0; c < 3; c++) {
-          drawCircle(gl, setup, {
-            x: padCx + (c - 1) * dx,
-            y: padCy + (r - 1) * dy,
-            radius: 5.5,
-            color: 'rgba(148,163,184,0.65)',
-          })
+          drawCircle(gl, setup, { x: padCx + (c - 1) * dx, y: padCy + (r - 1) * dy, radius: 5.5, color: 'rgba(148,163,184,0.65)' })
         }
       }
 
-      // money tray (drop zone)
-      drawRoundedRectangle(gl, setup, {
-        x: reg.trayX,
-        y: reg.trayY,
-        width: reg.trayW,
-        height: reg.trayH,
-        color: totalHere > 0 ? '#1f3a5c' : '#0f172a',
-        cornerRadius: 16,
-      })
-      drawRoundedRectangle(gl, setup, {
-        x: reg.trayX,
-        y: reg.trayY,
-        width: reg.trayW + 10,
-        height: reg.trayH + 10,
-        color: totalHere === goal && goal > 0 ? 'rgba(52,211,153,0.75)' : 'rgba(96,165,250,0.45)',
-        cornerRadius: 18,
-      })
-      drawRoundedRectangle(gl, setup, {
-        x: reg.trayX,
-        y: reg.trayY + reg.trayH * 0.08,
-        width: reg.trayW * 0.92,
-        height: reg.trayH * 0.55,
-        color: '#0b1220',
-        cornerRadius: 14,
-      })
-      drawRectangle(gl, setup, {
-        x: reg.trayX,
-        y: reg.trayY - reg.trayH * 0.28,
-        width: reg.trayW * 0.9,
-        height: 2,
-        color: 'rgba(255,255,255,0.10)',
-      })
+      drawRoundedRectangle(gl, setup, { x: reg.trayX, y: reg.trayY, width: reg.trayW, height: reg.trayH, color: totalHere > 0 ? '#1f3a5c' : '#0f172a', cornerRadius: 16 })
+      drawRoundedRectangle(gl, setup, { x: reg.trayX, y: reg.trayY, width: reg.trayW + 10, height: reg.trayH + 10, color: totalHere === goal && goal > 0 ? 'rgba(52,211,153,0.75)' : 'rgba(96,165,250,0.45)', cornerRadius: 18 })
+      drawRoundedRectangle(gl, setup, { x: reg.trayX, y: reg.trayY + reg.trayH * 0.08, width: reg.trayW * 0.92, height: reg.trayH * 0.55, color: '#0b1220', cornerRadius: 14 })
+      drawRectangle(gl, setup, { x: reg.trayX, y: reg.trayY - reg.trayH * 0.28, width: reg.trayW * 0.9, height: 2, color: 'rgba(255,255,255,0.10)' })
+      drawRoundedRectangle(gl, setup, { x: reg.trayX + reg.trayW * 0.30, y: reg.trayY + reg.trayH * 0.20, width: reg.trayW * 0.22, height: reg.trayH * 0.18, color: 'rgba(148,163,184,0.22)', cornerRadius: 10 })
 
-      // tray handle (extra detail)
-      drawRoundedRectangle(gl, setup, {
-        x: reg.trayX + reg.trayW * 0.30,
-        y: reg.trayY + reg.trayH * 0.20,
-        width: reg.trayW * 0.22,
-        height: reg.trayH * 0.18,
-        color: 'rgba(148,163,184,0.22)',
-        cornerRadius: 10,
-      })
+      drawRoundedRectangle(gl, setup, { x: reg.x - reg.width * 0.32, y: reg.y + reg.height * 0.46, width: reg.width * 0.12, height: reg.height * 0.06, color: '#0a0f1a', cornerRadius: 10 })
+      drawRoundedRectangle(gl, setup, { x: reg.x + reg.width * 0.32, y: reg.y + reg.height * 0.46, width: reg.width * 0.12, height: reg.height * 0.06, color: '#0a0f1a', cornerRadius: 10 })
 
-      // tiny feet
-      drawRoundedRectangle(gl, setup, {
-        x: reg.x - reg.width * 0.32,
-        y: reg.y + reg.height * 0.46,
-        width: reg.width * 0.12,
-        height: reg.height * 0.06,
-        color: '#0a0f1a',
-        cornerRadius: 10,
-      })
-      drawRoundedRectangle(gl, setup, {
-        x: reg.x + reg.width * 0.32,
-        y: reg.y + reg.height * 0.46,
-        width: reg.width * 0.12,
-        height: reg.height * 0.06,
-        color: '#0a0f1a',
-        cornerRadius: 10,
-      })
-
-      // -------- burst particles --------
       const parts = particlesRef.current
       for (let i = parts.length - 1; i >= 0; i--) {
         const p = parts[i]
@@ -632,7 +428,6 @@ export default function MoneyCounting() {
         drawCircle(gl, setup, { x: p.x, y: p.y, radius: p.radius * lifeRatio, color: p.color })
       }
 
-      // -------- trash bin (drawn on canvas) --------
       const tz = {
         x: w - 26 - Math.max(72, Math.min(112, w * 0.12)) / 2,
         y: h - 26 - Math.max(72, Math.min(112, h * 0.14)) / 2,
@@ -643,65 +438,16 @@ export default function MoneyCounting() {
       const isDraggingPlaced = Boolean(selected && selected.startsWith('placed-'))
       const binActive = isDraggingPlaced && trashHoverRef.current
 
-      drawRoundedRectangle(gl, setup, {
-        x: tz.x + 3,
-        y: tz.y + 4,
-        width: tz.width,
-        height: tz.height,
-        color: 'rgba(0,0,0,0.30)',
-        cornerRadius: 16,
-      })
-      drawRoundedRectangle(gl, setup, {
-        x: tz.x,
-        y: tz.y,
-        width: tz.width,
-        height: tz.height,
-        color: binActive ? '#7f1d1d' : '#111827',
-        cornerRadius: 16,
-      })
-      drawRoundedRectangle(gl, setup, {
-        x: tz.x,
-        y: tz.y,
-        width: tz.width * 0.96,
-        height: tz.height * 0.92,
-        color: binActive ? '#ef4444' : '#334155',
-        cornerRadius: 14,
-      })
-      drawRoundedRectangle(gl, setup, {
-        x: tz.x,
-        y: tz.y + 3,
-        width: tz.width * 0.86,
-        height: tz.height * 0.72,
-        color: binActive ? '#991b1b' : '#0b1220',
-        cornerRadius: 12,
-      })
-      drawRoundedRectangle(gl, setup, {
-        x: tz.x,
-        y: tz.y - tz.height * 0.28,
-        width: tz.width * 0.92,
-        height: tz.height * 0.22,
-        color: binActive ? '#ef4444' : '#475569',
-        cornerRadius: 12,
-      })
-      drawRoundedRectangle(gl, setup, {
-        x: tz.x,
-        y: tz.y - tz.height * 0.34,
-        width: tz.width * 0.35,
-        height: tz.height * 0.08,
-        color: binActive ? '#fecaca' : '#94a3b8',
-        cornerRadius: 10,
-      })
+      drawRoundedRectangle(gl, setup, { x: tz.x + 3, y: tz.y + 4, width: tz.width, height: tz.height, color: 'rgba(0,0,0,0.30)', cornerRadius: 16 })
+      drawRoundedRectangle(gl, setup, { x: tz.x, y: tz.y, width: tz.width, height: tz.height, color: binActive ? '#7f1d1d' : '#111827', cornerRadius: 16 })
+      drawRoundedRectangle(gl, setup, { x: tz.x, y: tz.y, width: tz.width * 0.96, height: tz.height * 0.92, color: binActive ? '#ef4444' : '#334155', cornerRadius: 14 })
+      drawRoundedRectangle(gl, setup, { x: tz.x, y: tz.y + 3, width: tz.width * 0.86, height: tz.height * 0.72, color: binActive ? '#991b1b' : '#0b1220', cornerRadius: 12 })
+      drawRoundedRectangle(gl, setup, { x: tz.x, y: tz.y - tz.height * 0.28, width: tz.width * 0.92, height: tz.height * 0.22, color: binActive ? '#ef4444' : '#475569', cornerRadius: 12 })
+      drawRoundedRectangle(gl, setup, { x: tz.x, y: tz.y - tz.height * 0.34, width: tz.width * 0.35, height: tz.height * 0.08, color: binActive ? '#fecaca' : '#94a3b8', cornerRadius: 10 })
       for (let k = -1; k <= 1; k++) {
-        drawRectangle(gl, setup, {
-          x: tz.x + k * (tz.width * 0.12),
-          y: tz.y + tz.height * 0.05,
-          width: 5,
-          height: tz.height * 0.48,
-          color: binActive ? 'rgba(254,202,202,0.55)' : 'rgba(148,163,184,0.35)',
-        })
+        drawRectangle(gl, setup, { x: tz.x + k * (tz.width * 0.12), y: tz.y + tz.height * 0.05, width: 5, height: tz.height * 0.48, color: binActive ? 'rgba(254,202,202,0.55)' : 'rgba(148,163,184,0.35)' })
       }
 
-      // -------- upgraded currency rendering (depth, borders, details) --------
       const shimmer = Math.sin(t * 2.5) * 4
 
       items.forEach((item) => {
@@ -722,19 +468,8 @@ export default function MoneyCounting() {
           drawCircle(gl, setup, { x: item.x, y: item.y, radius: r * 0.86, color: face })
           drawCircle(gl, setup, { x: item.x, y: item.y, radius: r * 0.72, color: innerRing })
           drawCircle(gl, setup, { x: item.x, y: item.y, radius: r * 0.68, color: face })
-
-          drawCircle(gl, setup, {
-            x: item.x - r * 0.32 + shimmer,
-            y: item.y - r * 0.34 - shimmer * 0.4,
-            radius: r * 0.18,
-            color: spec,
-          })
-          drawCircle(gl, setup, {
-            x: item.x + r * 0.18 + shimmer * 0.3,
-            y: item.y - r * 0.22,
-            radius: r * 0.05,
-            color: lighten(base, 0.75),
-          })
+          drawCircle(gl, setup, { x: item.x - r * 0.32 + shimmer, y: item.y - r * 0.34 - shimmer * 0.4, radius: r * 0.18, color: spec })
+          drawCircle(gl, setup, { x: item.x + r * 0.18 + shimmer * 0.3, y: item.y - r * 0.22, radius: r * 0.05, color: lighten(base, 0.75) })
           return
         }
 
@@ -748,15 +483,7 @@ export default function MoneyCounting() {
           const strip = darken(base, 0.18)
           const watermark = lighten(base, 0.45)
 
-          drawRoundedRectangle(gl, setup, {
-            x: item.x + 4,
-            y: item.y + 5,
-            width: nw,
-            height: nh,
-            color: `rgba(0,0,0,${shadowAlpha})`,
-            cornerRadius: 10,
-            rotation: tilt,
-          })
+          drawRoundedRectangle(gl, setup, { x: item.x + 4, y: item.y + 5, width: nw, height: nh, color: `rgba(0,0,0,${shadowAlpha})`, cornerRadius: 10, rotation: tilt })
           drawRoundedRectangle(gl, setup, { x: item.x, y: item.y, width: nw, height: nh, color: base, cornerRadius: 10, rotation: tilt })
           drawRoundedRectangle(gl, setup, { x: item.x, y: item.y, width: nw * 0.94, height: nh * 0.84, color: border, cornerRadius: 8, rotation: tilt })
           drawRoundedRectangle(gl, setup, { x: item.x, y: item.y, width: nw * 0.9, height: nh * 0.78, color: panel, cornerRadius: 7, rotation: tilt })
@@ -765,13 +492,7 @@ export default function MoneyCounting() {
 
           const lineY = item.y + nh * 0.18
           for (let k = 0; k < 3; k++) {
-            drawRectangle(gl, setup, {
-              x: item.x + nw * (0.08 + k * 0.12),
-              y: lineY + k * 6,
-              width: nw * 0.28,
-              height: 2,
-              color: darken(panel, 0.22),
-            })
+            drawRectangle(gl, setup, { x: item.x + nw * (0.08 + k * 0.12), y: lineY + k * 6, width: nw * 0.28, height: 2, color: darken(panel, 0.22) })
           }
           drawRectangle(gl, setup, { x: item.x, y: item.y - nh * 0.28, width: nw * 0.9, height: 2, color: lighten(panel, 0.35) })
         }
@@ -820,11 +541,16 @@ export default function MoneyCounting() {
     })
   }, [challenges.length])
 
-  // Calculate total value + goal celebration (based on register tray)
+  // CRITICAL VALIDATION CHECK: Include note limits logic to allow win
   useEffect(() => {
-    const total = placedItems.filter((it) => isInTray(it, cashRegister)).reduce((s, it) => s + it.value, 0)
+    const itemsInTray = placedItems.filter((it) => isInTray(it, cashRegister))
+    const total = itemsInTray.reduce((s, it) => s + it.value, 0)
+    const countInTray = itemsInTray.length
+
     setTotalValue(total)
-    if (total === goal && goal > 0 && lastWonGoalRef.current !== goal) {
+
+    // Only celebrate if target matches AND user complies with note max limits
+    if (total === goal && goal > 0 && countInTray <= maxAllowedNotes && lastWonGoalRef.current !== goal) {
       lastWonGoalRef.current = goal
       setCelebration(true)
       if (celebrationTimeoutRef.current) clearTimeout(celebrationTimeoutRef.current)
@@ -833,7 +559,7 @@ export default function MoneyCounting() {
         celebrationTimeoutRef.current = null
       }, 2500)
     }
-  }, [placedItems, goal, goToNextChallenge, cashRegister])
+  }, [placedItems, goal, maxAllowedNotes, goToNextChallenge, cashRegister])
 
   const recomputeTrashHover = useCallback(
     (x: number, y: number) => {
@@ -862,19 +588,11 @@ export default function MoneyCounting() {
         }
         if (item.type === 'bill' && item.width && item.height) {
           const tilt = (item.value % 3 - 1) * 0.03
-          return isPointInRectangle(x, y, {
-            x: item.x,
-            y: item.y,
-            width: item.width,
-            height: item.height,
-            color: item.color,
-            rotation: tilt,
-          })
+          return isPointInRectangle(x, y, { x: item.x, y: item.y, width: item.width, height: item.height, color: item.color, rotation: tilt })
         }
         return false
       }
 
-      // placed items first
       for (let i = placedItems.length - 1; i >= 0; i--) {
         const item = placedItems[i]
         if (hit(item)) {
@@ -891,7 +609,6 @@ export default function MoneyCounting() {
         return
       }
 
-      // then palette -> duplicate
       for (let i = palette.length - 1; i >= 0; i--) {
         const item = palette[i]
         if (hit(item)) {
@@ -931,13 +648,7 @@ export default function MoneyCounting() {
 
       setPlacedItems((items) =>
         items.map((item) =>
-          item.id === selectedItem
-            ? {
-                ...item,
-                x: Math.max(0, Math.min(newX, canvas.width)),
-                y: Math.max(0, Math.min(newY, canvas.height)),
-              }
-            : item
+          item.id === selectedItem ? { ...item, x: Math.max(0, Math.min(newX, canvas.width)), y: Math.max(0, Math.min(newY, canvas.height)) } : item
         )
       )
 
@@ -967,7 +678,6 @@ export default function MoneyCounting() {
   const handleMouseUp = () => {
     const selected = selectedItem
 
-    // trash drop deletes
     if (selected && selected.startsWith('placed-') && trashHoverRef.current) {
       setPlacedItems((prev) => prev.filter((it) => it.id !== selected))
       setSelectedItem(null)
@@ -977,7 +687,6 @@ export default function MoneyCounting() {
       return
     }
 
-    // burst when dropping inside tray
     if (selected && selected.startsWith('placed-')) {
       const item = placedItems.find((i) => i.id === selected)
       if (item && isInTray(item, cashRegister)) addBurst(particlesRef, item.x, item.y)
@@ -1014,8 +723,11 @@ export default function MoneyCounting() {
 
   const scaleX = canvasSize.displayW / canvasSize.w
   const scaleY = canvasSize.displayH / canvasSize.h
-
   const isDraggingPlaced = Boolean(selectedItem && selectedItem.startsWith('placed-'))
+
+  // Calculate current notes to trigger visual warnings
+  const countInTray = placedItems.filter((it) => isInTray(it, cashRegister)).length
+  const limitExceeded = countInTray > maxAllowedNotes
 
   return (
     <div className="h-full flex flex-col bg-gray-900">
@@ -1030,20 +742,14 @@ export default function MoneyCounting() {
           onMouseLeave={handleMouseLeave}
           onTouchStart={(e) => {
             e.preventDefault()
-            if (e.touches.length && canvasRef.current) {
-              const t = e.touches[0]
-              handlePointerDown(t.clientX, t.clientY)
-            }
+            if (e.touches.length && canvasRef.current) handlePointerDown(e.touches[0].clientX, e.touches[0].clientY)
           }}
           onTouchMove={(e) => {
             e.preventDefault()
             if (e.touches.length && canvasRef.current) {
               const t = e.touches[0]
-              const canvas = canvasRef.current
-              const rect = canvas.getBoundingClientRect()
-              const sX = canvas.width / rect.width
-              const sY = canvas.height / rect.height
-              cursorRef.current = { x: (t.clientX - rect.left) * sX, y: (t.clientY - rect.top) * sY, inside: true }
+              const rect = canvasRef.current.getBoundingClientRect()
+              cursorRef.current = { x: (t.clientX - rect.left) * (canvasRef.current.width / rect.width), y: (t.clientY - rect.top) * (canvasRef.current.height / rect.height), inside: true }
               handlePointerMove(t.clientX, t.clientY)
             }
           }}
@@ -1064,14 +770,7 @@ export default function MoneyCounting() {
                 left: item.x * scaleX,
                 top: item.y * scaleY,
                 transform: 'translate(-50%, -50%)',
-                fontSize:
-                  item.type === 'coin'
-                    ? item.radius && item.radius > 30
-                      ? 13
-                      : item.radius && item.radius > 26
-                        ? 12
-                        : 11
-                    : 11,
+                fontSize: item.type === 'coin' ? (item.radius && item.radius > 30 ? 13 : item.radius && item.radius > 26 ? 12 : 11) : 11,
                 padding: item.type === 'coin' ? '4px 8px' : '4px 10px',
                 borderRadius: 999,
                 background: item.type === 'coin' ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.55)',
@@ -1087,7 +786,7 @@ export default function MoneyCounting() {
           ))}
         </div>
 
-        {/* GOAL + TOTAL indicator (OUTSIDE the register, to the left) */}
+        {/* GOAL + TOTAL + NOTES indicator */}
         <div className="absolute inset-0 pointer-events-none">
           <div
             className="absolute"
@@ -1095,7 +794,7 @@ export default function MoneyCounting() {
               left: (cashRegister.x - cashRegister.width * 0.62) * scaleX,
               top: (cashRegister.y - cashRegister.height * 0.16) * scaleY,
               transform: 'translate(-100%, -20%)',
-              width: cashRegister.width * 0.28 * scaleX,
+              width: cashRegister.width * 0.32 * scaleX,
             }}
           >
             <div
@@ -1117,10 +816,16 @@ export default function MoneyCounting() {
                 <div className="text-[10px] font-semibold text-sky-200/90">TOTAL</div>
                 <div className="text-[16px] font-black text-sky-100">{displayTotal}৳</div>
               </div>
+              <div className="my-2 h-px" style={{ background: 'rgba(148,163,184,0.18)' }} />
+              <div className="flex items-center justify-between">
+                <div className="text-[10px] font-semibold text-amber-200/90">NOTES</div>
+                <div className={`text-[16px] font-black ${limitExceeded ? 'text-red-400' : 'text-amber-100'}`}>
+                  {countInTray} <span className="text-[12px] opacity-70">/ {maxAllowedNotes}</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* tray caption (clean, non-overlapping) */}
           <div
             className="absolute pointer-events-none"
             style={{
@@ -1130,7 +835,7 @@ export default function MoneyCounting() {
             }}
           >
             <div
-              className="text-xs font-semibold text-gray-200/80"
+              className="text-xs font-semibold text-gray-200/80 text-center"
               style={{
                 background: 'rgba(17,24,39,0.40)',
                 border: '1px solid rgba(148,163,184,0.20)',
@@ -1140,54 +845,34 @@ export default function MoneyCounting() {
                 boxShadow: '0 10px 24px rgba(0,0,0,0.25)',
               }}
             >
-              Drop money into the register tray
+              Drop money here <br /> <span className="opacity-70 text-[10px] uppercase">(Max {maxAllowedNotes} items)</span>
             </div>
           </div>
         </div>
 
-        {/* Trash hint (FIXED placement): only while dragging; sits above the bin */}
         {isDraggingPlaced && (
           <div className="absolute right-6 bottom-40 z-20 pointer-events-none">
-            <div
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold shadow-lg transition-all ${
-                trashHover ? 'bg-red-500/25 border-red-300 text-red-100' : 'bg-gray-800/60 border-gray-600/50 text-gray-200'
-              }`}
-            >
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold shadow-lg transition-all ${trashHover ? 'bg-red-500/25 border-red-300 text-red-100' : 'bg-gray-800/60 border-gray-600/50 text-gray-200'}`}>
               <span className="text-lg">🗑️</span>
               <span>{trashHover ? 'Release to delete' : 'Drag to bin to delete'}</span>
             </div>
           </div>
         )}
 
-        {/* Info button */}
-        <button
-          type="button"
-          onClick={() => setShowInstructions(true)}
-          className="absolute top-4 right-4 w-10 h-10 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-200 font-bold text-lg flex items-center justify-center border border-gray-600 shadow-lg transition-colors"
-          aria-label="Show instructions"
-        >
+        <button type="button" onClick={() => setShowInstructions(true)} className="absolute top-4 right-4 w-10 h-10 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-200 font-bold text-lg flex items-center justify-center border border-gray-600 shadow-lg transition-colors">
           i
         </button>
 
-        {/* Instructions modal */}
         {showInstructions && (
           <>
             <div className="absolute inset-0 bg-black/60 z-10" onClick={() => setShowInstructions(false)} aria-hidden />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-full max-w-sm bg-gray-800 rounded-xl shadow-xl border border-gray-700 p-5">
               <div className="flex justify-between items-start mb-3">
                 <h4 className="font-bold text-gray-100 text-lg">💰 Money Counting</h4>
-                <button
-                  type="button"
-                  onClick={() => setShowInstructions(false)}
-                  className="text-gray-400 hover:text-gray-200 text-xl leading-none"
-                  aria-label="Close"
-                >
-                  ×
-                </button>
+                <button type="button" onClick={() => setShowInstructions(false)} className="text-gray-400 hover:text-gray-200 text-xl leading-none">×</button>
               </div>
               <p className="text-sm text-gray-300 mb-3">
-                Drag coins and notes from the top display. Drop them into the cash register tray to match the goal. If you
-                add extra, drag it to the trash (🗑️).
+                Drag coins and notes from the top display. Match the target value <b>without exceeding the note limit</b> for your chosen difficulty.
               </p>
               <div className="text-xs text-gray-400 space-y-2">
                 <p className="font-medium text-gray-300">Bangladesh currency:</p>
@@ -1198,45 +883,39 @@ export default function MoneyCounting() {
           </>
         )}
 
-        {/* Challenge header */}
-        <div className="absolute top-4 left-4 bg-gray-800/90 rounded-lg px-4 py-2 border border-amber-500/50 shadow-lg z-10">
-          <span className="text-amber-400 font-bold text-sm">
-            🎯 Challenge {challengeIndex + 1} of {challenges.length}: Make {goal}৳!
-          </span>
+        <div className="absolute top-4 left-4 flex gap-3 z-10">
+          <div className="bg-gray-800/90 rounded-lg px-4 py-2 border border-amber-500/50 shadow-lg">
+            <span className="text-amber-400 font-bold text-sm">
+              🎯 Challenge {challengeIndex + 1} of {challenges.length}: Make {goal}৳!
+            </span>
+          </div>
         </div>
 
-        {/* Tip */}
         <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-none z-10 text-center">
           <span className="text-xs font-medium text-gray-400 bg-gray-800/70 rounded px-3 py-1.5 border border-gray-600/50">
             Tap & drag from here to add money
           </span>
         </div>
 
-        {/* All done overlay */}
         {allDone && !celebration && (
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/50">
             <div className="bg-gray-800 rounded-2xl px-8 py-6 shadow-2xl border border-amber-500/50 text-center max-w-sm">
               <div className="text-4xl mb-3">🏆</div>
               <div className="text-xl font-bold text-gray-100 mb-2">All challenges complete!</div>
               <p className="text-sm text-gray-400 mb-4">You finished all {challenges.length} challenges. Play again for new goals.</p>
-              <button
-                type="button"
-                onClick={playAgain}
-                className="bg-amber-500 hover:bg-amber-400 text-gray-900 font-bold px-6 py-3 rounded-xl transition-colors"
-              >
+              <button type="button" onClick={playAgain} className="bg-amber-500 hover:bg-amber-400 text-gray-900 font-bold px-6 py-3 rounded-xl transition-colors">
                 Play again
               </button>
             </div>
           </div>
         )}
 
-        {/* Celebration overlay */}
         {celebration && (
           <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-30 animate-pulse">
             <div className="bg-amber-400/90 text-gray-900 rounded-2xl px-8 py-6 shadow-2xl border-4 border-amber-300 text-center">
               <div className="text-4xl mb-2">🎉</div>
               <div className="text-2xl font-black">Well done!</div>
-              <div className="text-lg font-bold">You made {goal}৳!</div>
+              <div className="text-lg font-bold">You made {goal}৳ using {countInTray} notes!</div>
               <div className="text-sm mt-1 opacity-90">Next challenge in a moment…</div>
             </div>
           </div>
@@ -1246,12 +925,33 @@ export default function MoneyCounting() {
       {/* Control panel */}
       <div className="bg-gray-800 border-t border-gray-700 p-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="text-sm text-gray-300">
-              <span className="font-semibold">Items in tray:</span> {placedItems.filter((item) => isInTray(item, cashRegister)).length}
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            {/* Difficulty Selector */}
+            <div className="flex items-center gap-2 bg-gray-900/50 p-1 rounded-lg border border-gray-700">
+              {(['easy', 'medium', 'hard'] as const).map((level) => (
+                <button
+                  key={level}
+                  onClick={() => {
+                    setDifficulty(level)
+                    clearCurrentChallenge()
+                  }}
+                  className={`px-3 py-1 rounded-md text-xs font-bold uppercase transition-colors ${difficulty === level ? 'bg-amber-500 text-gray-900' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
+                    }`}
+                >
+                  {level}
+                </button>
+              ))}
             </div>
-            <div className="text-sm text-gray-500 hidden sm:block">({totalValue}৳ actual)</div>
+
+            <div className="text-sm text-gray-300">
+              <span className="font-semibold">Items in tray:</span>{' '}
+              <span className={limitExceeded ? 'text-red-400 font-bold' : ''}>
+                {countInTray} / {maxAllowedNotes}
+              </span>
+            </div>
           </div>
+
           <button
             onClick={clearCurrentChallenge}
             className="bg-gray-600 hover:bg-gray-500 text-gray-100 font-semibold text-sm px-4 py-2 rounded-lg transition-colors border border-gray-500"
