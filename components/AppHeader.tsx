@@ -50,7 +50,7 @@ export function AppHeader({ active }: AppHeaderProps) {
               href="/monitor"
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${navClass(active === 'monitor')}`}
             >
-              Dashboard
+              Monitor
             </Link>
           </div>
         </div>
