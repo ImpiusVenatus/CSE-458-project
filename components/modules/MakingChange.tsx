@@ -10,6 +10,8 @@ import {
   isPointInRectangle,
   Rectangle,
 } from '@/lib/webgl-shapes'
+import { useProgress } from '@/lib/progress-context'
+import { recordMakingChangeTransaction } from '@/lib/progress'
 
 type Denom = 1 | 2 | 5 | 10 | 20 | 50 | 100 | 200 | 500
 type CashStock = Record<Denom, number>
@@ -148,6 +150,7 @@ function denomLabel(d: Denom) {
 }
 
 export default function MakingChangeGame() {
+  const { userId } = useProgress()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rafRef = useRef<number | null>(null)
 
@@ -183,6 +186,7 @@ export default function MakingChangeGame() {
   })
 
   const [given, setGiven] = useState<Partial<CashStock>>({})
+  const [customerHintUsed, setCustomerHintUsed] = useState(false)
 
   const stockValue = useMemo(() => sumStock(stock), [stock])
   const totalGiven = useMemo(() => paymentTotal(given), [given])
@@ -228,14 +232,24 @@ export default function MakingChangeGame() {
 
     setCustomer({ item, payment, payTotal, changeDue, status: 'waiting' })
     setGiven({})
+    setCustomerHintUsed(false)
     setSelectedItemId(item.id)
     showToast({ title: 'New customer!', desc: `${item.name} • ${taka(item.price)}`, tone: 'info' })
   }
 
   const denyCustomer = () => {
-    if (customer.status !== 'waiting') return
+    if (customer.status !== 'waiting' || !customer.item) return
+    recordMakingChangeTransaction(userId, {
+      itemName: customer.item.name,
+      price: customer.item.price,
+      payTotal: customer.payTotal,
+      changeDue: customer.changeDue,
+      status: 'denied',
+      usedHint: customerHintUsed,
+    })
     setCustomer((c) => ({ ...c, status: 'denied' }))
     setGiven({})
+    setCustomerHintUsed(false)
     setSelectedItemId(null)
     showToast({ title: 'Denied', desc: 'No sale. Customer leaves.', tone: 'warn' })
   }
@@ -250,6 +264,7 @@ export default function MakingChangeGame() {
 
   const autoMakeChange = () => {
     if (customer.status !== 'waiting') return
+    setCustomerHintUsed(true)
     const due = customer.changeDue
     if (due <= 0) {
       setGiven({})
@@ -358,8 +373,17 @@ export default function MakingChangeGame() {
     const canvas = canvasRef.current
     if (canvas) triggerExchangeAnimation(canvas, customer.payment, given)
 
+    recordMakingChangeTransaction(userId, {
+      itemName: customer.item.name,
+      price: customer.item.price,
+      payTotal: customer.payTotal,
+      changeDue: customer.changeDue,
+      status: 'served',
+      usedHint: customerHintUsed,
+    })
     setStock(stockAfterGive)
     setCustomer((c) => ({ ...c, status: 'served' }))
+    setCustomerHintUsed(false)
     setSelectedItemId(null)
     showToast({ title: 'Served!', desc: 'Great job ✅', tone: 'good' })
 
@@ -382,6 +406,7 @@ export default function MakingChangeGame() {
       500: 0,
     })
     setGiven({})
+    setCustomerHintUsed(false)
     setCustomer({ item: null, payment: {}, payTotal: 0, changeDue: 0, status: 'idle' })
     setSelectedItemId(null)
     tokensRef.current = []

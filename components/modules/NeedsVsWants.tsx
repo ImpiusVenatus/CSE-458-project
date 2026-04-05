@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useProgress } from '@/lib/progress-context'
+import { recordNeedsVsWantsDrop, recordNeedsVsWantsRound } from '@/lib/progress'
 
 type Category = 'need' | 'want'
 
@@ -112,8 +114,10 @@ type FlyAnim = {
 }
 
 export default function NeedsVsWants() {
+  const { userId } = useProgress()
   const [round, setRound] = useState(0)
   const [showTip, setShowTip] = useState(false)
+  const [attemptVersion, setAttemptVersion] = useState(0)
 
   const roundPack = ROUNDS[round]
   const totalRounds = ROUNDS.length
@@ -133,6 +137,7 @@ export default function NeedsVsWants() {
   const needsRef = useRef<HTMLDivElement>(null)
   const wantsRef = useRef<HTMLDivElement>(null)
   const itemElMap = useRef<Record<string, HTMLDivElement | null>>({})
+  const recordedAttemptRef = useRef<number | null>(null)
 
   const score = useMemo(() => {
     let c = 0
@@ -156,6 +161,8 @@ export default function NeedsVsWants() {
     setNeeds([])
     setWants([])
     setDraggingId(null)
+    setAttemptVersion((v) => v + 1)
+    recordedAttemptRef.current = null
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [round])
 
@@ -196,6 +203,12 @@ export default function NeedsVsWants() {
     else setWants((w) => [item, ...w])
 
     const isCorrect = item.correct === target
+    recordNeedsVsWantsDrop(userId, {
+      itemName: item.name,
+      target,
+      correctTarget: item.correct,
+      correct: isCorrect,
+    })
     showToast({
       title: isCorrect ? 'Correct ✅' : 'Oops 😅',
       desc: isCorrect ? `${item.name} is a ${target.toUpperCase()}.` : `${item.name} should go to ${item.correct.toUpperCase()}.`,
@@ -208,8 +221,22 @@ export default function NeedsVsWants() {
     setNeeds([])
     setWants([])
     setDraggingId(null)
+    setAttemptVersion((v) => v + 1)
+    recordedAttemptRef.current = null
     showToast({ title: 'Reset', desc: 'Try again!', tone: 'info' })
   }
+
+  useEffect(() => {
+    if (!done || recordedAttemptRef.current === attemptVersion) return
+
+    recordNeedsVsWantsRound(userId, {
+      roundTitle: roundPack.title,
+      score,
+      totalItems: roundPack.items.length,
+      perfect,
+    })
+    recordedAttemptRef.current = attemptVersion
+  }, [attemptVersion, done, perfect, roundPack.items.length, roundPack.title, score, userId])
 
   const nextRound = () => {
     if (!done) {

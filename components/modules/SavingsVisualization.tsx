@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { initWebGL, setupBasic2D } from '@/lib/webgl-utils'
 import { drawCircle, drawRectangle, drawRoundedRectangle } from '@/lib/webgl-shapes'
+import { useProgress } from '@/lib/progress-context'
+import { recordSavingsDecision, recordSavingsRound } from '@/lib/progress'
 
 type FallingCoin = {
   id: string
@@ -39,6 +41,7 @@ function levelFromSavings(savings: number) {
 }
 
 export default function SavingsVisualization() {
+  const { userId } = useProgress()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animationRef = useRef<number | null>(null)
 
@@ -104,6 +107,9 @@ export default function SavingsVisualization() {
   }
 
   const endRound = () => {
+    recordSavingsRound(userId, {
+      earned: roundCoinsRef.current,
+    })
     setRoundActive(false)
     setTimeLeft(0)
   }
@@ -129,7 +135,14 @@ export default function SavingsVisualization() {
     if (roundActiveRef.current) return
     const earned = roundCoinsRef.current
     if (earned <= 0) return
+    const nextSavings = savings + earned
     setSavings((s) => s + earned)
+    recordSavingsDecision(userId, {
+      decision: 'save',
+      amount: earned,
+      totalSavings: nextSavings,
+      totalSpent: spent,
+    })
     bumpRef.current.piggy = 1
     bumpRef.current.tree = 1
     roundCoinsRef.current = 0
@@ -140,7 +153,14 @@ export default function SavingsVisualization() {
     if (roundActiveRef.current) return
     const earned = roundCoinsRef.current
     if (earned <= 0) return
+    const nextSpent = spent + earned
     setSpent((s) => s + earned)
+    recordSavingsDecision(userId, {
+      decision: 'spend',
+      amount: earned,
+      totalSavings: savings,
+      totalSpent: nextSpent,
+    })
     bumpRef.current.piggy = 1
     roundCoinsRef.current = 0
     setRoundCoins(0)
